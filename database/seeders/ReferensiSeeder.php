@@ -48,6 +48,15 @@ class ReferensiSeeder extends Seeder
                 'kakak' => 'Kakak', 'adik' => 'Adik', 'kakek_nenek' => 'Kakek/nenek', 'paman_bibi' => 'Paman/bibi',
                 'wali' => 'Wali', 'lainnya' => 'Lainnya',
             ],
+            'spmb_sumber' => [
+                'instagram' => 'Instagram', 'facebook' => 'Facebook', 'tiktok' => 'TikTok', 'website' => 'Website sekolah',
+                'whatsapp' => 'WhatsApp', 'brosur' => 'Brosur', 'spanduk' => 'Spanduk', 'event' => 'Event sekolah',
+                'referral' => 'Rekomendasi orang tua/alumni', 'walk_in' => 'Datang langsung', 'lainnya' => 'Lainnya',
+            ],
+            'spmb_kanal_kampanye' => [
+                'instagram' => 'Instagram', 'facebook' => 'Facebook', 'tiktok' => 'TikTok', 'google' => 'Google Ads',
+                'brosur' => 'Brosur', 'spanduk' => 'Spanduk', 'event' => 'Event', 'referral' => 'Referral', 'lainnya' => 'Lainnya',
+            ],
         ];
 
         $sekarang = now();

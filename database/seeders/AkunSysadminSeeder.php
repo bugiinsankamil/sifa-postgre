@@ -23,7 +23,7 @@ class AkunSysadminSeeder extends Seeder
 
         foreach (['username', 'password', 'nama', 'jenis_kelamin'] as $kunci) {
             if (blank($c[$kunci] ?? null)) {
-                $this->command?->warn("Akun sysadmin dilewati: SYSADMIN_".strtoupper($kunci).' belum diisi.');
+                $this->command?->warn("Akun sysadmin dilewati: SYSADMIN_" . strtoupper($kunci) . ' belum diisi.');
 
                 return;
             }
@@ -32,8 +32,8 @@ class AkunSysadminSeeder extends Seeder
         if (! in_array($c['jenis_kelamin'], ['L', 'P'], true)) {
             throw new InvalidArgumentException('SYSADMIN_JENIS_KELAMIN harus L atau P.');
         }
-        if (strlen((string) $c['password']) < 12) {
-            throw new InvalidArgumentException('SYSADMIN_PASSWORD minimal 12 karakter.');
+        if (strlen((string) $c['password']) < 8) {
+            throw new InvalidArgumentException('SYSADMIN_PASSWORD minimal 8 karakter.');
         }
 
         if (User::query()->where('username', $c['username'])->exists()) {
