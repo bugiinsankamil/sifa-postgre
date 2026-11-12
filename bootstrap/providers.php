@@ -1,9 +1,7 @@
 <?php
 
-use App\Providers\AksesServiceProvider;
-use App\Providers\AppServiceProvider;
-
 return [
-    AppServiceProvider::class,
-    AksesServiceProvider::class,
+    App\Providers\AksesServiceProvider::class,
+    App\Providers\AppServiceProvider::class,
+    App\Providers\Filament\SchoolPanelProvider::class,
 ];

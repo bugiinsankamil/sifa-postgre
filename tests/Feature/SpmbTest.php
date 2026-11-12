@@ -28,22 +28,29 @@ class SpmbTest extends TestCase
     {
         $waktu = ['created_at' => now(), 'updated_at' => now()];
 
-        $cabang = DB::table('cabang')->insertGetId(['kode' => $kodeCabang, 'nama' => 'Cabang '.$kodeCabang] + $waktu);
+        $cabang = DB::table('cabang')->insertGetId(['kode' => $kodeCabang, 'nama' => 'Cabang ' . $kodeCabang] + $waktu);
         $sekolah = DB::table('sekolah')->insertGetId([
             'cabang_id' => $cabang,
             'jenjang_id' => DB::table('jenjang')->where('kode', 'SD')->value('id'),
-            'nama' => 'SDIT '.$kodeCabang,
+            'nama' => 'SDIT ' . $kodeCabang,
         ] + $waktu);
         $tahun = DB::table('tahun_ajaran')->where('kode', '2026/2027')->value('id')
             ?? DB::table('tahun_ajaran')->insertGetId([
-                'kode' => '2026/2027', 'nama' => 'Tahun Ajaran 2026/2027',
-                'tanggal_mulai' => '2026-07-13', 'tanggal_selesai' => '2027-06-26',
+                'kode' => '2026/2027',
+                'nama' => 'Tahun Ajaran 2026/2027',
+                'tanggal_mulai' => '2026-07-13',
+                'tanggal_selesai' => '2027-06-26',
             ] + $waktu);
 
         $periode = SpmbPeriode::create([
-            'cabang_id' => $cabang, 'sekolah_id' => $sekolah, 'tahun_ajaran_id' => $tahun,
-            'nama' => 'Gelombang 1', 'gelombang' => 1,
-            'tanggal_buka' => '2026-11-01', 'tanggal_tutup' => '2026-12-31', 'kuota' => 30,
+            'cabang_id' => $cabang,
+            'sekolah_id' => $sekolah,
+            'tahun_ajaran_id' => $tahun,
+            'nama' => 'Gelombang 1',
+            'gelombang' => 1,
+            'tanggal_buka' => '2026-11-01',
+            'tanggal_tutup' => '2026-12-31',
+            'kuota' => 30,
         ]);
         $jalur = DB::table('spmb_jalur')->insertGetId(['periode_id' => $periode->id, 'nama' => 'Reguler'] + $waktu);
 
@@ -53,10 +60,15 @@ class SpmbTest extends TestCase
     private function pendaftar(array $s, array $atribut = []): SpmbPendaftar
     {
         return SpmbPendaftar::create($atribut + [
-            'periode_id' => $s['periode']->id, 'jalur_id' => $s['jalur'],
-            'cabang_id' => $s['cabang'], 'sekolah_id' => $s['sekolah'],
-            'tanggal_daftar' => '2026-11-10', 'nama_lengkap' => 'Calon Siswa', 'jenis_kelamin' => 'L',
-            'tempat_lahir' => 'Palembang', 'tanggal_lahir' => '2020-03-15',
+            'periode_id' => $s['periode']->id,
+            'jalur_id' => $s['jalur'],
+            'cabang_id' => $s['cabang'],
+            'sekolah_id' => $s['sekolah'],
+            'tanggal_daftar' => '2026-11-10',
+            'nama_lengkap' => 'Calon Siswa' . \Illuminate\Support\Str::random(6),
+            'jenis_kelamin' => 'L',
+            'tempat_lahir' => 'Palembang',
+            'tanggal_lahir' => '2020-03-15',
         ]);
     }
 
@@ -86,9 +98,14 @@ class SpmbTest extends TestCase
 
         $this->expectException(QueryException::class);
         SpmbPeriode::create([
-            'cabang_id' => $a['cabang'], 'sekolah_id' => $b['sekolah'], 'tahun_ajaran_id' => $a['tahun'],
-            'nama' => 'Salah', 'gelombang' => 2,
-            'tanggal_buka' => '2026-11-01', 'tanggal_tutup' => '2026-12-31', 'kuota' => 10,
+            'cabang_id' => $a['cabang'],
+            'sekolah_id' => $b['sekolah'],
+            'tahun_ajaran_id' => $a['tahun'],
+            'nama' => 'Salah',
+            'gelombang' => 2,
+            'tanggal_buka' => '2026-11-01',
+            'tanggal_tutup' => '2026-12-31',
+            'kuota' => 10,
         ]);
     }
 
@@ -104,9 +121,12 @@ class SpmbTest extends TestCase
     private function kontak(array $s, array $atribut = []): SpmbKontak
     {
         return SpmbKontak::create($atribut + [
-            'cabang_id' => $s['cabang'], 'tahun_ajaran_id' => $s['tahun'],
-            'nama_kontak' => 'Bapak Budi', 'telepon' => '0812-3456-7890',
-            'nama_calon_siswa' => 'Aisyah', 'sumber_ref' => 'instagram',
+            'cabang_id' => $s['cabang'],
+            'tahun_ajaran_id' => $s['tahun'],
+            'nama_kontak' => 'Bapak Budi',
+            'telepon' => '0812-3456-7890',
+            'nama_calon_siswa' => 'Aisyah',
+            'sumber_ref' => 'instagram',
         ]);
     }
 

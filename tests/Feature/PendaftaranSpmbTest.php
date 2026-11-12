@@ -51,7 +51,7 @@ class PendaftaranSpmbTest extends TestCase
     {
         $this->periodeTerbuka();
 
-        $this->get(route('spmb.index'))->assertOk()->assertSee('SDIT Fathona Palembang');
+        $this->get(route('spmb.index'))->assertOk()->assertSee('SDIT Fathona FTN-01');
     }
 
     public function test_periode_ditutup_menampilkan_pesan_dan_menolak_pendaftaran(): void

@@ -23,20 +23,21 @@ trait MenyiapkanSpmb
      *
      * @return array{cabang:int, sekolah:int, tahun:int, periode:SpmbPeriode, jalur:int, kk:int, akta:int, foto:int}
      */
-    protected function periodeTerbuka(array $ubah = []): array
+    protected function periodeTerbuka(array $ubah = [], string $kodeCabang = 'FTN-01'): array
     {
         $waktu = ['created_at' => now(), 'updated_at' => now()];
 
-        $cabang = DB::table('cabang')->insertGetId(['kode' => 'FTN-01', 'nama' => 'Fathona Palembang'] + $waktu);
+        $cabang = DB::table('cabang')->insertGetId(['kode' => $kodeCabang, 'nama' => 'Fathona '.$kodeCabang] + $waktu);
         $sekolah = DB::table('sekolah')->insertGetId([
             'cabang_id' => $cabang,
             'jenjang_id' => DB::table('jenjang')->where('kode', 'SD')->value('id'),
-            'nama' => 'SDIT Fathona Palembang',
+            'nama' => 'SDIT Fathona '.$kodeCabang,
         ] + $waktu);
-        $tahun = DB::table('tahun_ajaran')->insertGetId([
-            'kode' => '2026/2027', 'nama' => 'Tahun Ajaran 2026/2027',
-            'tanggal_mulai' => '2026-07-13', 'tanggal_selesai' => '2027-06-26',
-        ] + $waktu);
+        $tahun = DB::table('tahun_ajaran')->where('kode', '2026/2027')->value('id')
+            ?? DB::table('tahun_ajaran')->insertGetId([
+                'kode' => '2026/2027', 'nama' => 'Tahun Ajaran 2026/2027',
+                'tanggal_mulai' => '2026-07-13', 'tanggal_selesai' => '2027-06-26',
+            ] + $waktu);
 
         $periode = SpmbPeriode::create($ubah + [
             'cabang_id' => $cabang, 'sekolah_id' => $sekolah, 'tahun_ajaran_id' => $tahun,

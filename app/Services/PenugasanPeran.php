@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\Peran;
+use App\Support\CabangKonteks;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -55,6 +56,8 @@ class PenugasanPeran
 
     private function segarkan(Model $pengguna): void
     {
+        app(CabangKonteks::class)->lupakan();
+
         if (method_exists($pengguna, 'segarkanPeran')) {
             $pengguna->segarkanPeran();
         }

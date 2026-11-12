@@ -10,4 +10,7 @@ return [
 
     // Nilai referensi spmb_sumber untuk kontak yang dibuat otomatis dari formulir
     'sumber_bawaan' => 'website',
+
+    // Peran yang boleh mengelola SPMB di panel admin (data tetap dibatasi ke cabang masing-masing)
+    'peran_panitia' => ['sysadmin', 'yayasan', 'direktur', 'kepala_cabang', 'kepala_sekolah', 'admin'],
 ];
