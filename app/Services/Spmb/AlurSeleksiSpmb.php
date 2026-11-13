@@ -2,8 +2,11 @@
 
 namespace App\Services\Spmb;
 
+use App\Events\Spmb\BerkasDitolak;
+use App\Events\Spmb\PendaftarTerverifikasi;
 use App\Exceptions\Spmb\TransisiTidakValid;
 use App\Models\Rombel;
+use App\Models\SpmbBerkas;
 use App\Models\SpmbDaftarUlang;
 use App\Models\SpmbHasil;
 use App\Models\SpmbKontak;
@@ -43,6 +46,34 @@ class AlurSeleksiSpmb
         }
 
         $p->update(['status' => 'diverifikasi']);
+
+        PendaftarTerverifikasi::dispatch($p);
+    }
+
+    /**
+     * Menetapkan hasil pemeriksaan satu berkas (valid atau tidak_valid). Berkas yang ditolak memicu pesan ke
+     * orang tua berisi alasan penolakan dan tautan untuk mengunggah perbaikan.
+     *
+     * @throws TransisiTidakValid
+     */
+    public function tetapkanBerkas(SpmbBerkas $berkas, string $status, ?string $catatan, ?int $penelitiId): void
+    {
+        if (! in_array($status, ['valid', 'tidak_valid'], true)) {
+            throw new TransisiTidakValid('Status berkas harus valid atau tidak_valid.');
+        }
+        if ($status === 'tidak_valid' && blank($catatan)) {
+            throw new TransisiTidakValid('Alasan penolakan wajib diisi agar orang tua tahu apa yang harus diperbaiki.');
+        }
+
+        $berkas->update([
+            'status_verifikasi' => $status,
+            'catatan' => $status === 'valid' ? null : $catatan,
+            'diverifikasi_oleh' => $penelitiId,
+        ]);
+
+        if ($status === 'tidak_valid') {
+            BerkasDitolak::dispatch($berkas);
+        }
     }
 
     /** @throws TransisiTidakValid */

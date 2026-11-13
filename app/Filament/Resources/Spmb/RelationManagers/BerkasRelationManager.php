@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Spmb\RelationManagers;
 
+use App\Exceptions\Spmb\TransisiTidakValid;
 use App\Models\SpmbBerkas;
+use App\Services\Spmb\AlurSeleksiSpmb;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -62,11 +64,13 @@ class BerkasRelationManager extends RelationManager
 
     private function tetapkan(SpmbBerkas $berkas, string $status, ?string $catatan): void
     {
-        $berkas->update([
-            'status_verifikasi' => $status,
-            'catatan' => $catatan,
-            'diverifikasi_oleh' => auth()->id(),
-        ]);
+        try {
+            app(AlurSeleksiSpmb::class)->tetapkanBerkas($berkas, $status, $catatan, auth()->id());
+        } catch (TransisiTidakValid $e) {
+            Notification::make()->title('Tidak dapat diproses')->body($e->getMessage())->danger()->send();
+
+            return;
+        }
 
         Notification::make()->title('Status berkas diperbarui')->success()->send();
     }

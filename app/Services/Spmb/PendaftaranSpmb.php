@@ -2,6 +2,7 @@
 
 namespace App\Services\Spmb;
 
+use App\Events\Spmb\PendaftarTerdaftar;
 use App\Exceptions\Spmb\PendaftaranDitutup;
 use App\Exceptions\Spmb\PendaftarGanda;
 use App\Models\SpmbBerkas;
@@ -46,7 +47,7 @@ class PendaftaranSpmb
             throw new PendaftaranDitutup('Pendaftaran pada periode ini sedang tidak dibuka.');
         }
 
-        return DB::transaction(function () use ($periode, $data, $berkas) {
+        $baru = DB::transaction(function () use ($periode, $data, $berkas) {
             $this->tolakGanda($periode, $data);
 
             $kontak = $this->hubungkanKontak($periode, $data);
@@ -75,6 +76,11 @@ class PendaftaranSpmb
 
             return $pendaftar->refresh();
         });
+
+        // Setelah transaksi selesai: pesan konfirmasi ke orang tua dibuat dari peristiwa ini
+        PendaftarTerdaftar::dispatch($baru);
+
+        return $baru;
     }
 
     private function tolakGanda(SpmbPeriode $periode, array $data): void
