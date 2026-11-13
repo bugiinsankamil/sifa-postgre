@@ -3,6 +3,13 @@
 @section('isi')
     <h1>Cek status pendaftaran</h1>
 
+    @if (session('sukses'))
+        <div class="info">{{ session('sukses') }}</div>
+    @endif
+    @if ($errors->has('umum') || $errors->has('berkas'))
+        <div class="peringatan">{{ $errors->first('umum') ?: $errors->first('berkas') }}</div>
+    @endif
+
     <form method="POST" action="{{ route('spmb.status.cek') }}" class="kartu">
         @csrf
         <div class="grid">
@@ -33,14 +40,25 @@
             @if ($berkas->isNotEmpty())
                 <h2>Berkas</h2>
                 @foreach ($berkas as $b)
-                    <p>
-                        {{ $b->nama }}:
-                        @if ($b->status_verifikasi === 'valid') Sudah valid
-                        @elseif ($b->status_verifikasi === 'tidak_valid') Perlu diperbaiki
-                            @if ($b->catatan) ({{ $b->catatan }}) @endif
-                        @else Menunggu verifikasi
+                    <div style="margin-bottom:12px">
+                        <p style="margin:0">
+                            {{ $b->nama }}:
+                            @if ($b->status_verifikasi === 'valid') Sudah valid
+                            @elseif ($b->status_verifikasi === 'tidak_valid') <strong>Perlu diperbaiki</strong>
+                                @if ($b->catatan) ({{ $b->catatan }}) @endif
+                            @else Menunggu verifikasi
+                            @endif
+                        </p>
+
+                        @if ($b->status_verifikasi === 'tidak_valid' && ($bisaUnggah ?? false))
+                            <form method="POST" action="{{ route('spmb.berkas.unggah', $b->id) }}" enctype="multipart/form-data" style="margin-top:6px">
+                                @csrf
+                                <label for="berkas_{{ $b->id }}">Berkas perbaikan (JPG, PNG, atau PDF)</label>
+                                <input type="file" id="berkas_{{ $b->id }}" name="berkas" accept=".jpg,.jpeg,.png,.pdf" required>
+                                <p><button type="submit">Unggah perbaikan</button></p>
+                            </form>
                         @endif
-                    </p>
+                    </div>
                 @endforeach
             @endif
         </div>

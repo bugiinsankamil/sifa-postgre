@@ -35,6 +35,7 @@ class BerkasRelationManager extends RelationManager
                         default => 'Menunggu',
                     }),
                 TextColumn::make('catatan')->limit(60),
+                TextColumn::make('updated_at')->label('Diperbarui')->since(),
             ])
             ->recordActions([
                 Action::make('lihat')

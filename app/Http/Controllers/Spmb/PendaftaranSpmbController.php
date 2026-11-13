@@ -4,19 +4,26 @@ namespace App\Http\Controllers\Spmb;
 
 use App\Exceptions\Spmb\PendaftaranDitutup;
 use App\Exceptions\Spmb\PendaftarGanda;
+use App\Exceptions\Spmb\UnggahUlangDitolak;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DaftarSpmbRequest;
+use App\Models\SpmbBerkas;
 use App\Models\SpmbPendaftar;
 use App\Models\SpmbPeriode;
 use App\Services\Spmb\PendaftaranSpmb;
+use App\Services\Spmb\PerbaikanBerkasSpmb;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 
 class PendaftaranSpmbController extends Controller
 {
+    /** Lama (detik) pendaftar tetap dikenali setelah memasukkan nomor pendaftaran dan tanggal lahir. */
+    private const MASA_SESI_STATUS = 1800;
+
     private const LABEL_STATUS = [
         'draft' => 'Pendaftaran belum selesai.',
         'terdaftar' => 'Pendaftaran diterima dan menunggu verifikasi berkas.',
@@ -114,7 +121,70 @@ class PendaftaranSpmbController extends Controller
             return view('spmb.status', ['dicari' => true, 'pendaftar' => null]);
         }
 
+        // Pendaftar dikenali selama sesi ini, supaya bisa mengunggah ulang berkas tanpa mengisi ulang data
+        $request->session()->put('spmb.pendaftar_id', $pendaftar->id);
+        $request->session()->put('spmb.waktu', now()->timestamp);
+
+        return $this->tampilStatus($pendaftar);
+    }
+
+    /** Status pendaftar yang sedang dikenali oleh sesi (setelah cek status atau unggah ulang). */
+    public function statusSaya(Request $request): View|RedirectResponse
+    {
+        $pendaftar = $this->pendaftarDariSesi($request);
+
+        return $pendaftar === null ? redirect()->route('spmb.status') : $this->tampilStatus($pendaftar);
+    }
+
+    public function unggahUlang(Request $request, SpmbBerkas $berkas, PerbaikanBerkasSpmb $layanan): RedirectResponse
+    {
+        $pendaftar = $this->pendaftarDariSesi($request);
+        if ($pendaftar === null) {
+            return redirect()->route('spmb.status')
+                ->withErrors(['umum' => 'Sesi habis. Masukkan kembali nomor pendaftaran dan tanggal lahir.']);
+        }
+
+        // Berkas harus milik pendaftar yang dikenali sesi ini
+        abort_unless((int) $berkas->pendaftar_id === (int) $pendaftar->id, 403);
+
+        $validator = Validator::make($request->all(), [
+            'berkas' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:'.config('spmb.berkas_maks_kb', 3072)],
+        ], [
+            'required' => 'Pilih berkas yang akan diunggah.',
+            'file' => 'Berkas tidak valid.',
+            'mimes' => 'Berkas harus berformat JPG, PNG, atau PDF.',
+            'max' => 'Ukuran berkas maksimal :max KB.',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->route('spmb.status.saya')->withErrors($validator);
+        }
+
+        try {
+            $layanan->ganti($berkas, $request->file('berkas'));
+        } catch (UnggahUlangDitolak $e) {
+            return redirect()->route('spmb.status.saya')->withErrors(['umum' => $e->getMessage()]);
+        }
+
+        return redirect()->route('spmb.status.saya')->with('sukses', 'Berkas perbaikan diterima dan menunggu verifikasi ulang.');
+    }
+
+    private function pendaftarDariSesi(Request $request): ?SpmbPendaftar
+    {
+        $id = $request->session()->get('spmb.pendaftar_id');
+        $waktu = (int) $request->session()->get('spmb.waktu', 0);
+
+        if (! $id || now()->timestamp - $waktu > self::MASA_SESI_STATUS) {
+            return null;
+        }
+
+        return SpmbPendaftar::query()->withoutGlobalScopes()->find($id);
+    }
+
+    private function tampilStatus(SpmbPendaftar $pendaftar): View
+    {
         $status = $pendaftar->status;
+
         if (isset(self::STATUS_HASIL[$status])) {
             $keterangan = config('spmb.tampilkan_hasil_di_status')
                 ? self::STATUS_HASIL[$status]
@@ -127,13 +197,14 @@ class PendaftaranSpmbController extends Controller
             ->join('spmb_persyaratan_berkas as r', 'r.id', '=', 'b.persyaratan_id')
             ->where('b.pendaftar_id', $pendaftar->id)
             ->orderBy('r.urutan')
-            ->get(['r.nama', 'b.status_verifikasi', 'b.catatan']);
+            ->get(['b.id', 'r.nama', 'b.status_verifikasi', 'b.catatan']);
 
         return view('spmb.status', [
             'dicari' => true,
             'pendaftar' => $pendaftar,
             'keterangan' => $keterangan,
             'berkas' => $berkas,
+            'bisaUnggah' => in_array($status, ['draft', 'terdaftar'], true),
         ]);
     }
 

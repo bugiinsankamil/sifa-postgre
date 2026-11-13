@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\SpmbBerkas;
 use App\Models\SpmbDaftarUlang;
 use App\Models\SpmbPendaftar;
 use App\Support\CabangKonteks;
@@ -27,9 +28,14 @@ class RingkasanSpmb extends StatsOverviewWidget
             ->whereIn('pendaftar_id', SpmbPendaftar::query()->select('id'))
             ->count();
 
+        $berkasMenunggu = SpmbBerkas::query()
+            ->where('status_verifikasi', 'menunggu')
+            ->whereIn('pendaftar_id', SpmbPendaftar::query()->select('id'))
+            ->count();
+
         return [
             Stat::make('Total pendaftar', SpmbPendaftar::query()->count()),
-            Stat::make('Menunggu verifikasi', $hitung(['terdaftar'])),
+            Stat::make('Menunggu verifikasi', $hitung(['terdaftar']))->description($berkasMenunggu.' berkas perlu dicek'),
             Stat::make('Dalam seleksi', $hitung(['diverifikasi', 'seleksi'])),
             Stat::make('Lulus', $hitung(['lulus', 'daftar_ulang', 'menjadi_siswa'])),
             Stat::make('Daftar ulang selesai', $daftarUlangSelesai),

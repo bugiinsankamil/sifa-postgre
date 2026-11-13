@@ -8,6 +8,8 @@ Route::prefix('spmb')->name('spmb.')->controller(PendaftaranSpmbController::clas
     Route::get('/', 'index')->name('index');
     Route::get('/status', 'statusForm')->name('status');
     Route::post('/status', 'statusCek')->middleware('throttle:10,1')->name('status.cek');
+    Route::get('/status/saya', 'statusSaya')->name('status.saya');
+    Route::post('/berkas/{berkas}', 'unggahUlang')->whereNumber('berkas')->middleware('throttle:10,1')->name('berkas.unggah');
     Route::get('/terdaftar', 'terdaftar')->name('terdaftar');
     Route::get('/{periode}', 'form')->whereNumber('periode')->name('form');
     Route::post('/{periode}', 'store')->whereNumber('periode')->middleware('throttle:10,1')->name('store');
