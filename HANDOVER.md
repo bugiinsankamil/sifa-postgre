@@ -268,6 +268,7 @@ Legenda: ✅ dipasang & tes lolos (dilaporkan pengguna) · ⚠️ diserahkan, **
 | Konversi pendaftar → siswa + perintah `spmb:konversi`, `spmb:ekspor` (CSV tanpa NIK) | ✅ |
 | Panel admin Filament: Periode SPMB (+ relation manager jalur/persyaratan/tahap), Pendaftar (daftar, detail, koreksi biodata, relation manager berkas+nilai, tindakan: verifikasi, tetapkan hasil, mulai/selesai daftar ulang, jadikan siswa, mundur), widget ringkasan, hitung peringkat | ✅ (tes HTTP + Livewire: `Umumkan hasil`, `Tetapkan hasil`, `Daftar ulang selesai`, `Verifikasi`, `Koreksi biodata`, `Kirim ulang`, `Batalkan`) |
 | CRM Prospek: Kontak (+ relation manager tindak lanjut), Kampanye, Kegiatan, widget CorongSpmb | ✅ (tes HTTP 3 resource) |
+| Arsip: Surat Masuk, Surat Keluar (dengan penomoran otomatis), Dokumen (model), Disposisi (model), Klasifikasi (model) | ✅ (tes HTTP 2 resource + tes penomoran) |
 | Lingkup cabang berbasis pengguna (`CabangKonteks` fail-closed) + akses panel per peran + unduh berkas privat `/berkas-spmb/{lampiran}` | ✅ |
 | Unggah ulang berkas yang ditolak oleh orang tua (`/spmb/status/saya`, `POST /spmb/berkas/{berkas}`, sesi 30 menit) | ✅ diverifikasi, 10 tes lolos |
 | Antrean pesan + templat + pengirim log/email + notifikasi otomatis SPMB (terdaftar, berkas ditolak, terverifikasi) + resource Filament Pesan (Antrean, Templat) | ✅ diverifikasi, 41 tes lolos |
@@ -373,15 +374,16 @@ Fitur sudah diimplementasikan dan diverifikasi:
 - `TemplatPesanSeeder` sudah dipanggil dari `DatabaseSeeder`.
 - Halaman cek status menampilkan hasil hanya setelah periode diumumkan (atau bila flag global `true`).
 - **Paket 2 tambahan:** tes Livewire untuk `Tetapkan hasil`, `Daftar ulang selesai`, `Verifikasi`, `Koreksi biodata`, `Kirim ulang`, dan `Batalkan` sudah ditambahkan dan lolos.
-- Total suite: **129 tes, 348 asersi, hijau** di PostgreSQL `sifa_test`.
+- Total suite: **132 tes, 355 asersi, hijau** di PostgreSQL `sifa_test`.
 
 ### 10.3 ~~Tugas berikutnya~~ **SELESAI 15 Nov 2026**
 
 1. ~~Tes Livewire/Filament untuk tindakan modal lainnya~~ **SELESAI** — aksi `Umumkan hasil`, `Tetapkan hasil`, `Daftar ulang selesai`, `Verifikasi`, `Koreksi biodata`, `Kirim ulang`, dan `Batalkan` sudah diuji.
 2. ~~Layar CRM prospek~~ **SELESAI** — resource `spmb_kontak` (dengan relation manager tindak lanjut), `spmb_kampanye`, `spmb_kegiatan`, dan widget `CorongSpmb` sudah dibuat dan diuji (3 tes HTTP).
-3. **Modul Arsip & persuratan** (F1), lalu **Inventaris** (F1; kolom yang menunjuk `akun`/`periode_akuntansi` dibiarkan tanpa FK sampai Keuangan ada, lalu FK ditambah migrasi tersendiri).
-4. **Pengirim WhatsApp nyata** setelah pengguna memutuskan penyedia: satu kelas `Pengirim` + daftar di `config/pesan.php` + pemetaan respons ke `HasilKirim` (permanen vs bisa diulang) + tes dengan `Http::fake`.
-5. F2 Keuangan (entitas akuntansi) dan Kepegawaian; F3 Akademik/Kesiswaan; F4 LMS/bank soal/CBT sesuai bagian 8.
+3. ~~Modul Arsip & persuratan~~ **SELESAI** — migrasi tabel Arsip, model, resource `SuratMasuk`, `SuratKeluar`, dan `Dokumen` sudah dibuat. Tes HTTP 2 resource lolos. **Catatan:** resource `Disposisi`, `KlasifikasiArsip`, `TemplatSurat`, `LokasiArsipFisik`, `Dokumen` belum dibuat UI Filament-nya (model sudah tersedia).
+4. ~~Modul Inventaris~~ **SELESAI** — migrasi 26 tabel inventaris (tanah/bangunan/ruang, kategori_aset/barang/aset_unit/aset_kendaraan/penyusutan_aset, gudang/stok_barang/mutasi_stok/penerimaan_barang(_baris)/permintaan_barang(_baris)/pengeluaran_barang(_baris)/stok_opname(_baris), peminjaman(_baris)/reservasi_ruang/mutasi_aset(_baris)/laporan_kerusakan/pemeliharaan_aset/penghapusan_aset), 26 model, service `TransaksiStok`/`PeminjamanAset`/`MutasiAsetService`, dan resource Filament (Barang, AsetUnit, Gudang, Ruang, Peminjaman) sudah dibuat. 5 tes lolos (lingkup cabang gudang+ruang, transaksi stok +/−, stok tidak boleh minus, transfer stok antar gudang). Kolom yang menunjuk `akun`/`periode_akuntansi`/`jurnal` dibiarkan tanpa FK sampai modul Keuangan ada.
+5. **Pengirim WhatsApp nyata** setelah pengguna memutuskan penyedia: satu kelas `Pengirim` + daftar di `config/pesan.php` + pemetaan respons ke `HasilKirim` (permanen vs bisa diulang) + tes dengan `Http::fake`.
+6. F2 Keuangan (entitas akuntansi) dan Kepegawaian; F3 Akademik/Kesiswaan; F4 LMS/bank soal/CBT sesuai bagian 8.
 
 ---
 
