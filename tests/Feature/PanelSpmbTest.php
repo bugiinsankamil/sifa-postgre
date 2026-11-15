@@ -61,6 +61,62 @@ class PanelSpmbTest extends TestCase
             ->assertDontSee('Calon Cabang Dua');
     }
 
+    public function test_admin_cabang_melihat_kontak_prospek_cabangnya_saja(): void
+    {
+        \App\Models\SpmbKontak::create([
+            'cabang_id' => $this->a['cabang'], 'tahun_ajaran_id' => $this->a['tahun'],
+            'nama_kontak' => 'Kontak Cabang Satu', 'telepon' => '0812-1111-1111',
+            'sumber_ref' => 'website', 'status' => 'baru',
+        ]);
+        \App\Models\SpmbKontak::create([
+            'cabang_id' => $this->b['cabang'], 'tahun_ajaran_id' => $this->b['tahun'],
+            'nama_kontak' => 'Kontak Cabang Dua', 'telepon' => '0812-2222-2222',
+            'sumber_ref' => 'website', 'status' => 'baru',
+        ]);
+
+        $this->actingAs($this->pengguna('admin1', Peran::Admin, $this->a['cabang']))
+            ->get(\App\Filament\Resources\Spmb\SpmbKontakResource::getUrl('index'))
+            ->assertOk()
+            ->assertSee('Kontak Cabang Satu')
+            ->assertDontSee('Kontak Cabang Dua');
+    }
+
+    public function test_admin_cabang_melihat_kampanye_cabangnya_saja(): void
+    {
+        \App\Models\SpmbKampanye::create([
+            'cabang_id' => $this->a['cabang'], 'nama' => 'Kampanye Cabang Satu',
+            'kanal_ref' => 'instagram', 'tanggal_mulai' => today(),
+        ]);
+        \App\Models\SpmbKampanye::create([
+            'cabang_id' => $this->b['cabang'], 'nama' => 'Kampanye Cabang Dua',
+            'kanal_ref' => 'instagram', 'tanggal_mulai' => today(),
+        ]);
+
+        $this->actingAs($this->pengguna('admin1', Peran::Admin, $this->a['cabang']))
+            ->get(\App\Filament\Resources\Spmb\SpmbKampanyeResource::getUrl('index'))
+            ->assertOk()
+            ->assertSee('Kampanye Cabang Satu')
+            ->assertDontSee('Kampanye Cabang Dua');
+    }
+
+    public function test_admin_cabang_melihat_kegiatan_cabangnya_saja(): void
+    {
+        \App\Models\SpmbKegiatan::create([
+            'cabang_id' => $this->a['cabang'], 'nama' => 'Open House Cabang Satu',
+            'jenis' => 'open_house', 'tanggal' => today(),
+        ]);
+        \App\Models\SpmbKegiatan::create([
+            'cabang_id' => $this->b['cabang'], 'nama' => 'Open House Cabang Dua',
+            'jenis' => 'open_house', 'tanggal' => today(),
+        ]);
+
+        $this->actingAs($this->pengguna('admin1', Peran::Admin, $this->a['cabang']))
+            ->get(\App\Filament\Resources\Spmb\SpmbKegiatanResource::getUrl('index'))
+            ->assertOk()
+            ->assertSee('Open House Cabang Satu')
+            ->assertDontSee('Open House Cabang Dua');
+    }
+
     public function test_sysadmin_melihat_semua_cabang(): void
     {
         $this->actingAs($this->pengguna('sa', Peran::Sysadmin))
