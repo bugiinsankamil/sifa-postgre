@@ -86,4 +86,14 @@ class Pegawai extends BaseModel
     {
         return $this->hasMany(PelatihanPeserta::class, 'pegawai_id');
     }
+
+    public function absensi(): HasMany
+    {
+        return $this->hasMany(AbsensiPegawai::class, 'pegawai_id');
+    }
+
+    public function absensiLogMentah(): HasMany
+    {
+        return $this->hasMany(AbsensiLogMentah::class, 'pegawai_id');
+    }
 }

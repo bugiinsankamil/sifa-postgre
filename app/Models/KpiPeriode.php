@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class KpiPeriode extends BaseModel
+{
+    protected $guarded = [];
+
+    protected function casts(): array
+    {
+        return [
+            'tanggal_mulai' => 'date',
+            'tanggal_selesai' => 'date',
+        ];
+    }
+
+    public function cabang(): BelongsTo
+    {
+        return $this->belongsTo(Cabang::class, 'cabang_id');
+    }
+
+    public function penilaian(): HasMany
+    {
+        return $this->hasMany(KpiPenilaian::class, 'periode_id');
+    }
+}
