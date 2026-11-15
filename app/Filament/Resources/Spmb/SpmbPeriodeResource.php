@@ -13,7 +13,9 @@ use App\Models\Cabang;
 use App\Models\Sekolah;
 use App\Models\SpmbPeriode;
 use App\Models\TahunAjaran;
+use App\Exceptions\Spmb\TransisiTidakValid;
 use App\Services\Spmb\AlurSeleksiSpmb;
+use App\Services\Spmb\PengumumanHasilSpmb;
 use App\Support\CabangKonteks;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -126,10 +128,43 @@ class SpmbPeriodeResource extends Resource
                 TextColumn::make('pendaftar_count')->label('Pendaftar'),
                 TextColumn::make('diterima_count')->label('Diterima')
                     ->description(fn (SpmbPeriode $record) => 'kuota '.$record->kuota),
+                TextColumn::make('hasil_diumumkan_pada')->label('Diumumkan')
+                    ->badge()
+                    ->formatStateUsing(fn ($state): string => blank($state) ? 'Belum' : 'Sudah')
+                    ->color(fn ($state): string => blank($state) ? 'gray' : 'success')
+                    ->description(fn (SpmbPeriode $record): ?string => $record->hasil_diumumkan_pada?->format('d/m/Y H:i')),
             ])
             ->defaultSort('id', 'desc')
             ->recordActions([
                 EditAction::make(),
+                Action::make('umumkanHasil')
+                    ->label('Umumkan hasil')
+                    ->icon('heroicon-o-megaphone')
+                    ->color('success')
+                    ->visible(fn (SpmbPeriode $record): bool => $record->hasil_diumumkan_pada === null
+                        && app(CabangKonteks::class)->punyaPeran(['sysadmin', 'yayasan', 'direktur', 'kepala_cabang']))
+                    ->requiresConfirmation()
+                    ->modalHeading('Umumkan hasil seleksi?')
+                    ->modalDescription(function (SpmbPeriode $record): string {
+                        $r = PengumumanHasilSpmb::ringkasan($record);
+
+                        return "Hasil akan terlihat di halaman cek status. Pesan akan diantrekan untuk {$r['lulus']} pendaftar lulus, {$r['cadangan']} cadangan, dan {$r['tidak_lulus']} tidak lulus. Tindakan ini tidak dapat dibatalkan.";
+                    })
+                    ->action(function (SpmbPeriode $record) {
+                        try {
+                            $jumlah = app(PengumumanHasilSpmb::class)->umumkan($record, auth()->id());
+                        } catch (TransisiTidakValid $e) {
+                            Notification::make()->title($e->getMessage())->danger()->send();
+
+                            return;
+                        }
+
+                        Notification::make()
+                            ->title("Hasil diumumkan; {$jumlah} pesan diantrekan")
+                            ->body('Pendaftar tanpa kontak atau templat aktif tidak memperoleh pesan.')
+                            ->success()
+                            ->send();
+                    }),
                 Action::make('peringkat')
                     ->label('Hitung peringkat')
                     ->icon('heroicon-o-trophy')

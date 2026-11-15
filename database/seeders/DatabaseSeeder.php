@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             JenjangSeeder::class,
             TingkatSeeder::class,
             ReferensiSeeder::class,
+            TemplatPesanSeeder::class,
             PeranSeeder::class,         // butuh tabel spatie/laravel-permission sudah dimigrasi
             AkunSysadminSeeder::class,  // dilewati bila SYSADMIN_* di .env belum diisi
         ]);

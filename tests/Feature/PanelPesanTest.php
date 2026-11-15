@@ -69,12 +69,15 @@ class PanelPesanTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_templat_hanya_untuk_pengelola(): void
+    public function test_admin_tidak_boleh_mengelola_templat(): void
     {
         $this->actingAs($this->pengguna('admin1', Peran::Admin, $this->a['cabang']))
             ->get(TemplatPesanResource::getUrl('index'))
             ->assertForbidden();
+    }
 
+    public function test_sysadmin_dapat_melihat_templat(): void
+    {
         $this->actingAs($this->pengguna('sa', Peran::Sysadmin))
             ->get(TemplatPesanResource::getUrl('index'))
             ->assertOk()

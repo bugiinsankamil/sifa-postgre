@@ -186,7 +186,9 @@ class PendaftaranSpmbController extends Controller
         $status = $pendaftar->status;
 
         if (isset(self::STATUS_HASIL[$status])) {
-            $keterangan = config('spmb.tampilkan_hasil_di_status')
+            $diumumkan = config('spmb.tampilkan_hasil_di_status')
+                || $pendaftar->periode->hasil_diumumkan_pada !== null;
+            $keterangan = $diumumkan
                 ? self::STATUS_HASIL[$status]
                 : 'Hasil seleksi akan diumumkan oleh sekolah.';
         } else {

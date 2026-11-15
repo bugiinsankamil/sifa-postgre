@@ -18,6 +18,7 @@ class SpmbPeriode extends BaseModel
             'tanggal_buka' => 'date',
             'tanggal_tutup' => 'date',
             'biaya_pendaftaran' => 'decimal:2',
+            'hasil_diumumkan_pada' => 'datetime',
         ];
     }
 

@@ -28,6 +28,20 @@ class NotifikasiSpmb
         $this->kirim($p, 'spmb_terverifikasi', "spmb_terverifikasi:{$p->id}");
     }
 
+    public function hasil(SpmbPendaftar $p): bool
+    {
+        $hasil = $p->hasil;
+        if ($hasil === null) {
+            return false;
+        }
+
+        return $this->kirim(
+            $p,
+            'spmb_hasil_'.$hasil->keputusan,
+            "spmb_hasil:{$p->id}:{$hasil->keputusan}",
+        );
+    }
+
     public function berkasDitolak(SpmbBerkas $berkas): void
     {
         $p = SpmbPendaftar::query()->withoutGlobalScopes()->find($berkas->pendaftar_id);
@@ -45,14 +59,14 @@ class NotifikasiSpmb
         ]);
     }
 
-    private function kirim(SpmbPendaftar $p, string $kode, string $kunci, array $tambahan = []): void
+    private function kirim(SpmbPendaftar $p, string $kode, string $kunci, array $tambahan = []): bool
     {
         $wali = SpmbPendaftarWali::query()->where('pendaftar_id', $p->id)->where('is_kontak_utama', true)->first();
         if ($wali === null || blank($wali->telepon)) {
-            return;
+            return false;
         }
 
-        $this->pesan->antri($kode, $wali->telepon, [
+        return $this->pesan->antri($kode, $wali->telepon, [
             'nama_wali' => $wali->nama,
             'nama_anak' => $p->nama_lengkap,
             'sekolah' => (string) DB::table('sekolah')->where('id', $p->sekolah_id)->value('nama'),
@@ -63,6 +77,6 @@ class NotifikasiSpmb
             'kunci_unik' => $kunci,
             'konteks_type' => $p->getMorphClass(),
             'konteks_id' => $p->id,
-        ]);
+        ]) !== null;
     }
 }

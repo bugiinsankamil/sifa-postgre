@@ -32,6 +32,21 @@ class TemplatPesanSeeder extends Seeder
                 'isi' => "Assalamu'alaikum {{nama_wali}}.\nBerkas pendaftaran {{nama_anak}} ({{nomor}}) di {{sekolah}} sudah kami verifikasi. Informasi jadwal seleksi akan kami sampaikan.\nStatus terbaru: {{url_status}}",
                 'variabel' => $umum,
             ],
+            [
+                'kode' => 'spmb_hasil_lulus',
+                'isi' => "Assalamu'alaikum {{nama_wali}}.\nAlhamdulillah, {{nama_anak}} ({{nomor}}) dinyatakan LULUS seleksi penerimaan murid baru di {{sekolah}}.\nSilakan melakukan daftar ulang sesuai jadwal dan ketentuan yang disampaikan sekolah. Informasi daftar ulang dan status pendaftaran dapat dilihat di: {{url_status}}\nJazakumullahu khairan.",
+                'variabel' => $umum,
+            ],
+            [
+                'kode' => 'spmb_hasil_cadangan',
+                'isi' => "Assalamu'alaikum {{nama_wali}}.\nBerdasarkan hasil seleksi, {{nama_anak}} ({{nomor}}) berstatus CADANGAN di {{sekolah}}.\nKami akan menghubungi Anda apabila tersedia kesempatan daftar ulang. Pantau informasi terbaru di: {{url_status}}\nJazakumullahu khairan.",
+                'variabel' => $umum,
+            ],
+            [
+                'kode' => 'spmb_hasil_tidak_lulus',
+                'isi' => "Assalamu'alaikum {{nama_wali}}.\nTerima kasih atas partisipasi {{nama_anak}} ({{nomor}}) dalam seleksi penerimaan murid baru di {{sekolah}}. Dengan berat hati kami sampaikan bahwa pada periode ini ananda belum dinyatakan lulus.\nSemoga ananda senantiasa diberi kemudahan dan keberhasilan dalam melanjutkan pendidikan. Informasi status dapat dilihat di: {{url_status}}\nJazakumullahu khairan.",
+                'variabel' => $umum,
+            ],
         ];
 
         foreach ($baris as $b) {

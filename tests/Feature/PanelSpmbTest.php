@@ -93,4 +93,26 @@ class PanelSpmbTest extends TestCase
             ->get(SpmbPendaftarResource::getUrl('view', ['record' => $idCabangDua]))
             ->assertNotFound();
     }
+
+    public function test_umumkan_hasil_memanggil_service_dan_menampilkan_notifikasi(): void
+    {
+        $this->seed(\Database\Seeders\TemplatPesanSeeder::class);
+        $p = app(PendaftaranSpmb::class)->daftar($this->a['periode'], $this->dataPendaftaran($this->a, [
+            'nik' => '1671'.str_pad((string) abs(crc32('PanelSpmbTest')), 12, '0', STR_PAD_LEFT),
+        ]));
+        $user = $this->pengguna('kepala1', Peran::KepalaCabang, $this->a['cabang']);
+        $this->actingAs($user);
+
+        \Illuminate\Support\Facades\DB::table('spmb_hasil')->insert([
+            'pendaftar_id' => $p->id, 'keputusan' => 'lulus', 'tanggal_keputusan' => today(),
+            'ditetapkan_oleh' => $user->id, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $p->update(['status' => 'lulus']);
+
+        \Livewire\Livewire::test(\App\Filament\Resources\Spmb\Pages\ListSpmbPeriode::class)
+            ->callAction(\Filament\Actions\Testing\TestAction::make('umumkanHasil')->table($this->a['periode']));
+
+        $this->assertNotNull($this->a['periode']->fresh()->hasil_diumumkan_pada);
+        \Filament\Notifications\Notification::assertNotified('Hasil diumumkan; 1 pesan diantrekan');
+    }
 }
