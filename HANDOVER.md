@@ -359,6 +359,14 @@ tests/Feature/{PeranTest,SysadminTest,NikTest,PenomoranTest,SpmbTest,Pendaftaran
 - `wilayah` belum di-seed; `pegawai/jabatan` belum ada model/UI; approval engine belum ada; izin (permission) per peran belum ada.
 - `NIS yayasan` memakai pola awal `{TAHUN}{SEQ:4}`; **harus disesuaikan** dengan format NIS yang sudah berlaku (edit/baris `penomoran` kode `nis_yayasan`) sebelum konversi pertama di produksi; bentrok dengan NIS lama akan ditolak unique index.
 
+### 9.4 Paket A — Perbaikan integritas dan akses SDM (selesai 15 Nov 2026)
+
+- Form create/edit absensi, cuti, izin tersambung ke layanan bisnis (bukan langsung Eloquent).
+- Otorisasi eksplisit pada aksi setujui/tolak cuti/izin (`canApprovePengajuan` di `AksesSdm`).
+- Pilihan pegawai di form dibatasi berdasarkan cabang yang diizinkan (`PegawaiResource::getEloquentQuery`).
+- 6 tes baru di `PanelSdmTest`: create absensi, create cuti, validasi saldo, admin tidak bisa setujui, kepala cabang bisa setujui/tolak.
+- Total tes: 189 (183 baseline + 6 baru).
+
 ---
 
 ## 10. TUGAS BERIKUTNYA (siap dikerjakan)
