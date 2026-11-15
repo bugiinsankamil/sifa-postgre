@@ -47,6 +47,12 @@ trait AksesSdm
         return static::punyaPeranSdm(config('sdm.peran_status', []));
     }
 
+    /** Apakah pengguna boleh menyetujui atau menolak pengajuan cuti/izin. */
+    public static function canApprovePengajuan(): bool
+    {
+        return static::punyaPeranSdm(config('sdm.peran_status', []));
+    }
+
     private static function punyaPeranSdm(array $peran): bool
     {
         return app(CabangKonteks::class)->punyaPeran($peran);

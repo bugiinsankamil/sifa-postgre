@@ -10,6 +10,7 @@ use App\Models\AbsensiPegawai;
 use App\Models\Cabang;
 use App\Models\Pegawai;
 use App\Models\ShiftKerja;
+use App\Filament\Resources\Sdm\PegawaiResource;
 use App\Services\Sdm\AbsensiService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -48,7 +49,7 @@ class AbsensiResource extends Resource
         return $schema->components([
             Section::make('Data absensi')->columns(2)->schema([
                 Select::make('pegawai_id')->label('Pegawai')
-                    ->options(fn () => Pegawai::query()->with('orang')->get()->pluck('orang.nama_lengkap', 'id'))
+                    ->options(fn () => PegawaiResource::getEloquentQuery()->get()->pluck('orang.nama_lengkap', 'id'))
                     ->required()->searchable(),
                 DatePicker::make('tanggal')->required(),
                 Select::make('status')->options([

@@ -9,6 +9,7 @@ use App\Filament\Resources\Sdm\Pages\ListPengajuanCuti;
 use App\Models\JenisCuti;
 use App\Models\Pegawai;
 use App\Models\PengajuanCuti;
+use App\Filament\Resources\Sdm\PegawaiResource;
 use App\Services\Sdm\CutiService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -45,7 +46,7 @@ class PengajuanCutiResource extends Resource
         return $schema->components([
             Section::make('Data pengajuan cuti')->columns(2)->schema([
                 Select::make('pegawai_id')->label('Pegawai')
-                    ->options(fn () => Pegawai::query()->with('orang')->get()->pluck('orang.nama_lengkap', 'id'))
+                    ->options(fn () => PegawaiResource::getEloquentQuery()->get()->pluck('orang.nama_lengkap', 'id'))
                     ->required()->searchable(),
                 Select::make('jenis_cuti_id')->label('Jenis Cuti')
                     ->options(fn () => JenisCuti::query()->where('is_aktif', true)->orderBy('nama')->pluck('nama', 'id'))
@@ -90,6 +91,7 @@ class PengajuanCutiResource extends Resource
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(fn (PengajuanCuti $r) => $r->status === 'diajukan')
+                    ->authorize(fn () => static::canApprovePengajuan())
                     ->action(function (PengajuanCuti $record) {
                         try {
                             app(CutiService::class)->setujui($record, auth()->user());
@@ -103,6 +105,7 @@ class PengajuanCutiResource extends Resource
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (PengajuanCuti $r) => $r->status === 'diajukan')
+                    ->authorize(fn () => static::canApprovePengajuan())
                     ->schema([
                         Textarea::make('alasan')->label('Alasan penolakan')->rows(2),
                     ])

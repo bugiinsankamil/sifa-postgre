@@ -8,6 +8,7 @@ use App\Filament\Resources\Sdm\Pages\EditPengajuanIzin;
 use App\Filament\Resources\Sdm\Pages\ListPengajuanIzin;
 use App\Models\Pegawai;
 use App\Models\PengajuanIzin;
+use App\Filament\Resources\Sdm\PegawaiResource;
 use App\Services\Sdm\IzinService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -43,7 +44,7 @@ class PengajuanIzinResource extends Resource
         return $schema->components([
             Section::make('Data pengajuan izin')->columns(2)->schema([
                 Select::make('pegawai_id')->label('Pegawai')
-                    ->options(fn () => Pegawai::query()->with('orang')->get()->pluck('orang.nama_lengkap', 'id'))
+                    ->options(fn () => PegawaiResource::getEloquentQuery()->get()->pluck('orang.nama_lengkap', 'id'))
                     ->required()->searchable(),
                 Select::make('jenis')->label('Jenis Izin')
                     ->options([
@@ -91,6 +92,7 @@ class PengajuanIzinResource extends Resource
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(fn (PengajuanIzin $r) => $r->status === 'diajukan')
+                    ->authorize(fn () => static::canApprovePengajuan())
                     ->action(function (PengajuanIzin $record) {
                         try {
                             app(IzinService::class)->setujui($record, auth()->user());
@@ -104,6 +106,7 @@ class PengajuanIzinResource extends Resource
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (PengajuanIzin $r) => $r->status === 'diajukan')
+                    ->authorize(fn () => static::canApprovePengajuan())
                     ->schema([
                         Textarea::make('alasan')->label('Alasan penolakan')->rows(2),
                     ])
