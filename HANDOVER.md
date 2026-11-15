@@ -266,7 +266,7 @@ Legenda: ✅ dipasang & tes lolos (dilaporkan pengguna) · ⚠️ diserahkan, **
 | Migrasi SPMB (prospek, pendaftaran, view) + perbaikan (wali.jenis_kelamin, anti-ganda, siswa_id) | ✅ |
 | Formulir pendaftaran publik (`/spmb`, `/spmb/{periode}`), halaman nomor pendaftaran, **cek status** (`/spmb/status`) | ✅ |
 | Konversi pendaftar → siswa + perintah `spmb:konversi`, `spmb:ekspor` (CSV tanpa NIK) | ✅ |
-| Panel admin Filament: Periode SPMB (+ relation manager jalur/persyaratan/tahap), Pendaftar (daftar, detail, koreksi biodata, relation manager berkas+nilai, tindakan: verifikasi, tetapkan hasil, mulai/selesai daftar ulang, jadikan siswa, mundur), widget ringkasan, hitung peringkat | ✅ (tes HTTP daftar/halaman; **aksi `Umumkan hasil` sudah diuji via Livewire; tindakan modal lainnya belum**) |
+| Panel admin Filament: Periode SPMB (+ relation manager jalur/persyaratan/tahap), Pendaftar (daftar, detail, koreksi biodata, relation manager berkas+nilai, tindakan: verifikasi, tetapkan hasil, mulai/selesai daftar ulang, jadikan siswa, mundur), widget ringkasan, hitung peringkat | ✅ (tes HTTP + Livewire: `Umumkan hasil`, `Tetapkan hasil`, `Daftar ulang selesai`, `Verifikasi`, `Koreksi biodata`, `Kirim ulang`, `Batalkan`) |
 | Lingkup cabang berbasis pengguna (`CabangKonteks` fail-closed) + akses panel per peran + unduh berkas privat `/berkas-spmb/{lampiran}` | ✅ |
 | Unggah ulang berkas yang ditolak oleh orang tua (`/spmb/status/saya`, `POST /spmb/berkas/{berkas}`, sesi 30 menit) | ✅ diverifikasi, 10 tes lolos |
 | Antrean pesan + templat + pengirim log/email + notifikasi otomatis SPMB (terdaftar, berkas ditolak, terverifikasi) + resource Filament Pesan (Antrean, Templat) | ✅ diverifikasi, 41 tes lolos |
@@ -339,7 +339,7 @@ tests/Feature/{PeranTest,SysadminTest,NikTest,PenomoranTest,SpmbTest,Pendaftaran
 1. ~~**`spmb-unggah-ulang.zip`**~~ **SELESAI** — diverifikasi 15 Nov 2026, 10 tes lolos.
 2. ~~**`antrean-pesan.zip`**~~ **SELESAI** — diverifikasi 15 Nov 2026, 41 tes lolos (termasuk `PanelPesanTest` yang diperbarui).
 3. ~~Risiko spesifik paket pesan~~ **SELESAI** — auto-discovery listener, `FOR UPDATE SKIP LOCKED`, dan jam tenang sudah teruji di PostgreSQL.
-4. **Celah cakupan tes (smoke test manual atau tambah tes Livewire):** semua **tindakan modal Filament** (`Tetapkan hasil`, `Daftar ulang selesai` dengan form, `Tidak valid`, `Catat nilai`, `Koreksi biodata`), form create/edit periode, relation manager jalur/persyaratan/tahap, widget `RingkasanSpmb`, resource Pesan (aksi kirim ulang/batalkan), dan tampilan Blade di browser. **Sebagian sudah ditambahkan:** aksi `Umumkan hasil` di panel periode sudah diuji via Livewire. Tes lainnya masih perlu ditambahkan.
+4. **Celah cakupan tes (smoke test manual atau tambah tes Livewire):** semua **tindakan modal Filament** (`Tetapkan hasil`, `Daftar ulang selesai` dengan form, `Tidak valid`, `Catat nilai`, `Koreksi biodata`), form create/edit periode, relation manager jalur/persyaratan/tahap, widget `RingkasanSpmb`, resource Pesan (aksi kirim ulang/batalkan), dan tampilan Blade di browser. **Sebagian sudah ditambahkan:** aksi `Umumkan hasil`, `Tetapkan hasil`, `Daftar ulang selesai`, `Verifikasi`, `Koreksi biodata`, `Kirim ulang`, dan `Batalkan` sudah diuji via Livewire. **Masih perlu:** `Tidak valid` (relation manager), `Catat nilai` (relation manager), form create/edit periode, relation manager jalur/persyaratan/tahap, widget `RingkasanSpmb`.
 5. `Action::schema()` (v4/v5) dipakai untuk form modal; bila "method not found", ganti `->form([...])`.
 
 ### 9.3 Utang teknis / batasan yang diketahui
@@ -371,7 +371,8 @@ Fitur sudah diimplementasikan dan diverifikasi:
 - Templat pesan `spmb_hasil_lulus`, `spmb_hasil_cadangan`, `spmb_hasil_tidak_lulus` sudah tersedia di `TemplatPesanSeeder`.
 - `TemplatPesanSeeder` sudah dipanggil dari `DatabaseSeeder`.
 - Halaman cek status menampilkan hasil hanya setelah periode diumumkan (atau bila flag global `true`).
-- Total suite: **120 tes, 319 asersi, hijau** di PostgreSQL `sifa_test`.
+- **Paket 2 tambahan:** tes Livewire untuk `Tetapkan hasil`, `Daftar ulang selesai`, `Verifikasi`, `Koreksi biodata`, `Kirim ulang`, dan `Batalkan` sudah ditambahkan dan lolos.
+- Total suite: **126 tes, 339 asersi, hijau** di PostgreSQL `sifa_test`.
 
 ### 10.3 Tugas berikutnya (urutan usulan; konfirmasi dengan pengguna)
 

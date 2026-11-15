@@ -115,4 +115,95 @@ class PanelSpmbTest extends TestCase
         $this->assertNotNull($this->a['periode']->fresh()->hasil_diumumkan_pada);
         \Filament\Notifications\Notification::assertNotified('Hasil diumumkan; 1 pesan diantrekan');
     }
+
+    public function test_tetapkan_hasil_memperbarui_status_pendaftar(): void
+    {
+        $user = $this->pengguna('admin1', Peran::Admin, $this->a['cabang']);
+        $this->actingAs($user);
+        $p = \App\Models\SpmbPendaftar::query()->where('cabang_id', $this->a['cabang'])->first();
+        $p->update(['status' => 'seleksi']);
+
+        \Livewire\Livewire::test(\App\Filament\Resources\Spmb\Pages\ViewSpmbPendaftar::class, ['record' => $p->getRouteKey()])
+            ->callAction('hasil', ['keputusan' => 'lulus', 'catatan' => 'Memenuhi syarat']);
+
+        $this->assertSame('lulus', $p->fresh()->status);
+        $this->assertDatabaseHas('spmb_hasil', ['pendaftar_id' => $p->id, 'keputusan' => 'lulus']);
+    }
+
+    public function test_daftar_ulang_selesai_membuat_record_daftar_ulang(): void
+    {
+        $user = $this->pengguna('admin1', Peran::Admin, $this->a['cabang']);
+        $this->actingAs($user);
+        $p = \App\Models\SpmbPendaftar::query()->where('cabang_id', $this->a['cabang'])->first();
+        $p->update(['status' => 'daftar_ulang']);
+        \App\Models\SpmbDaftarUlang::create(['pendaftar_id' => $p->id, 'status' => 'menunggu']);
+
+        \Livewire\Livewire::test(\App\Filament\Resources\Spmb\Pages\ViewSpmbPendaftar::class, ['record' => $p->getRouteKey()])
+            ->callAction('selesaiDaftarUlang', ['tanggal' => today()->toDateString()]);
+
+        $this->assertSame('selesai', $p->daftarUlang()->first()->status);
+    }
+
+    public function test_verifikasi_action_di_halaman_detail(): void
+    {
+        $user = $this->pengguna('admin1', Peran::Admin, $this->a['cabang']);
+        $this->actingAs($user);
+        $p = \App\Models\SpmbPendaftar::query()->where('cabang_id', $this->a['cabang'])->first();
+        \Illuminate\Support\Facades\DB::table('spmb_berkas')->insert([
+            'pendaftar_id' => $p->id, 'persyaratan_id' => $this->a['kk'], 'periode_id' => $this->a['periode']->id,
+            'status_verifikasi' => 'valid', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        \Illuminate\Support\Facades\DB::table('spmb_berkas')->insert([
+            'pendaftar_id' => $p->id, 'persyaratan_id' => $this->a['akta'], 'periode_id' => $this->a['periode']->id,
+            'status_verifikasi' => 'valid', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        \Livewire\Livewire::test(\App\Filament\Resources\Spmb\Pages\ViewSpmbPendaftar::class, ['record' => $p->getRouteKey()])
+            ->callAction('verifikasi');
+
+        $this->assertSame('diverifikasi', $p->fresh()->status);
+    }
+
+    public function test_koreksi_biodata_mengubah_nama_pendaftar(): void
+    {
+        $user = $this->pengguna('admin1', Peran::Admin, $this->a['cabang']);
+        $this->actingAs($user);
+        $p = \App\Models\SpmbPendaftar::query()->where('cabang_id', $this->a['cabang'])->first();
+
+        \Livewire\Livewire::test(\App\Filament\Resources\Spmb\Pages\EditSpmbPendaftar::class, ['record' => $p->getRouteKey()])
+            ->fillForm(['nama_lengkap' => 'Nama Dikoreksi'])
+            ->call('save');
+
+        $this->assertSame('Nama Dikoreksi', $p->fresh()->nama_lengkap);
+    }
+
+    public function test_kirim_ulang_pesan_gagal_mengembalikan_status_antri(): void
+    {
+        $user = $this->pengguna('admin1', Peran::Admin, $this->a['cabang']);
+        $this->actingAs($user);
+        $pesan = \App\Models\AntreanPesan::create([
+            'cabang_id' => $this->a['cabang'], 'kanal' => 'whatsapp', 'tujuan' => '6281234567890',
+            'isi' => 'Test', 'status' => 'gagal',
+        ]);
+
+        \Livewire\Livewire::test(\App\Filament\Resources\Pesan\Pages\ListAntreanPesan::class)
+            ->callAction(\Filament\Actions\Testing\TestAction::make('kirimUlang')->table($pesan));
+
+        $this->assertSame('antri', $pesan->fresh()->status);
+    }
+
+    public function test_batalkan_pesan_antri_mengubah_status_dibatalkan(): void
+    {
+        $user = $this->pengguna('admin1', Peran::Admin, $this->a['cabang']);
+        $this->actingAs($user);
+        $pesan = \App\Models\AntreanPesan::create([
+            'cabang_id' => $this->a['cabang'], 'kanal' => 'whatsapp', 'tujuan' => '6281234567890',
+            'isi' => 'Test', 'status' => 'antri',
+        ]);
+
+        \Livewire\Livewire::test(\App\Filament\Resources\Pesan\Pages\ListAntreanPesan::class)
+            ->callAction(\Filament\Actions\Testing\TestAction::make('batalkan')->table($pesan));
+
+        $this->assertSame('dibatalkan', $pesan->fresh()->status);
+    }
 }
