@@ -57,6 +57,19 @@ class ReferensiSeeder extends Seeder
                 'instagram' => 'Instagram', 'facebook' => 'Facebook', 'tiktok' => 'TikTok', 'google' => 'Google Ads',
                 'brosur' => 'Brosur', 'spanduk' => 'Spanduk', 'event' => 'Event', 'referral' => 'Referral', 'lainnya' => 'Lainnya',
             ],
+            'bank' => [
+                'bsi' => 'Bank Syariah Indonesia (BSI)', 'bca' => 'BCA', 'bri' => 'BRI', 'bni' => 'BNI',
+                'mandiri' => 'Bank Mandiri', 'btn' => 'BTN', 'cimb' => 'CIMB Niaga', 'permata' => 'Permata',
+                'muamalat' => 'Bank Muamalat', 'mega' => 'Bank Mega', 'lainnya' => 'Lainnya',
+            ],
+            'jenis_sertifikasi' => [
+                'serdik' => 'Sertifikasi Guru (Serdik)', 'impassing' => 'Impassing',
+                'pelatihan' => 'Sertifikat Pelatihan', 'profesi' => 'Sertifikat Profesi', 'lainnya' => 'Lainnya',
+            ],
+            'jenis_pelatihan' => [
+                'internal' => 'Pelatihan Internal', 'eksternal' => 'Pelatihan Eksternal',
+                'diklat' => 'Diklat', 'workshop' => 'Workshop/Seminar', 'lainnya' => 'Lainnya',
+            ],
         ];
 
         $sekarang = now();
