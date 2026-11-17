@@ -11,3 +11,35 @@ Proyek ERP SIT Fathona. Baca HANDOVER.md sebelum bekerja. Pengguna berbahasa Ind
 - Jangan memindahkan ke app/Modules, jangan mengganti stack, jangan menjalankan migrate:fresh di database development.
 - Tanyakan ke pengguna bila ada keputusan produk (peran/lingkup, format NIS, penyedia WhatsApp) yang belum tercantum di HANDOVER.md.
 - JANGAN gunakan `sudo` di semua terminal command. Jalankan semua perintah `php`, `artisan`, `composer`, `npm`, and `git` sebagai user standar saat ini. Jika ada galat permission muncul, berhenti dan tanyakan ke user daripada meningkatkan akses menggunakan `sudo`.
+
+# Aturan Efisiensi Token & Standar Kerja Laravel + Filament
+
+## 1. Larangan Pengujian & Eksekusi Otomatis
+- **Dilarang menjalankan test:** Setelah selesai menulis atau mengedit kode, JANGAN menjalankan `php artisan test`, `phpunit`, `pest`, `npm test`, `npm run build`, atau `npm run dev` kecuali diminta secara eksplisit dalam prompt saat ini.
+- **Dilarang membuka browser:** Jangan pernah menggunakan *browser tool* untuk mengecek halaman atau UI setelah perubahan selesai.
+- **Serahkan verifikasi ke user:** Begitu perubahan file selesai disimpan, langsung hentikan eksekusi dan biarkan user yang menguji hasilnya secara manual.
+
+## 2. Navigasi Proyek Laravel & Filament (Hemat Input Token)
+- **Langsung ke target direktori:** Jangan memindai seluruh folder proyek dengan `list_files`. Ikuti konvensi standar Laravel & Filament:
+  - Model & Observer: `app/Models/` (atau `Modules/<NamaModul>/app/Models/`)
+  - Filament Resource, Pages, RelationManagers, & Widgets: `app/Filament/` (atau `Modules/<NamaModul>/app/Filament/`)
+  - Migration & Seeder: `database/migrations/` & `database/seeders/`
+  - Blade View & Livewire: `resources/views/`
+- **Gunakan `@file` secara langsung:** Jika user sudah menyertakan file dengan `@`, baca atau edit file tersebut langsung tanpa melakukan pencarian global.
+- **Batasi pembacaan file besar:** Untuk file di atas 250 baris, gunakan `search_files` untuk mencari nama method, relasi, atau schema tertentu sebelum membaca baris terkait.
+- **Jangan baca ulang file:** Hindari membaca ulang file yang isinya sudah tampil dalam riwayat sesi ini.
+
+## 3. Strategi Penulisan & Edit Kode (Hemat Output Token)
+- **Wajib `replace_in_file` (diff):** Selalu gunakan `replace_in_file` untuk mengubah file yang sudah ada. Dilarang menimpa seluruh file menggunakan `write_to_file` kecuali membuat file baru atau merombak lebih dari 80% isi file.
+- **Ikuti standar Filament PHP modern:** Gunakan sintaks komponen Form/Schema, Table, Actions, dan Infolists yang bersih dan ringkas tanpa komentar penjelasan baris per baris.
+- **Jangan ubah kode di luar ruang lingkup:** Biarkan import, method, atau properti lain yang tidak berkaitan tetap utuh.
+
+## 4. Kontrol Perintah Terminal & Pencegahan Loop
+- **Utamakan Artisan generator:** Jika perlu membuat file kerangka baru (Model, Migration, Filament Resource) dan terminal diizinkan, gunakan perintah `php artisan make:... --no-interaction` daripada menulis boilerplate dari nol.
+- **Batas kegagalan (Max 2x):** Jika perintah terminal gagal 2 kali berturut-turut, **HENTIKAN** percobaan otomatis. Sampaikan inti error secara singkat dan tunggu instruksi user.
+- **Pangkas output terminal:** Jika menjalankan perintah Artisan yang berpotensi menghasilkan teks panjang, batasi outputnya (misalnya tambahkan `| tail -n 20`).
+
+## 5. Gaya Komunikasi
+- Jawab dengan ringkas, padat, dan langsung teknis dalam Bahasa Indonesia.
+- Hindari basa-basi pembuka maupun penutup.
+- Setelah selesai, sebutkan daftar file yang dibuat/diubah maksimal dalam 2 baris.

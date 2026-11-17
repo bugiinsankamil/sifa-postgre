@@ -57,6 +57,8 @@ class AbsensiService
                 'longitude' => $data['longitude'] ?? $absensi->longitude,
                 'foto_path' => $data['foto_path'] ?? $absensi->foto_path,
                 'diajukan_oleh' => $diajukanOleh ?? $absensi->diajukan_oleh,
+                'pengajuan_cuti_id' => $data['pengajuan_cuti_id'] ?? $absensi->pengajuan_cuti_id,
+                'pengajuan_izin_id' => $data['pengajuan_izin_id'] ?? $absensi->pengajuan_izin_id,
             ]);
 
             // Hitung terlambat/pulang cepat jika shift dan jam tersedia

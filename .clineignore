@@ -1,7 +1,46 @@
+# Dependensi & Package Manager
 vendor/
 node_modules/
-storage/
-public/build/
 composer.lock
 package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Cache, Log, & Storage
+storage/
+bootstrap/cache/
+.phpunit.cache/
 *.log
+*.cache
+
+# Aset Build & Publik
+public/build/
+public/hot
+public/storage/
+dist/
+build/
+.vite/
+
+# Kontrol Versi & IDE
+.git/
+.github/
+.vscode/
+.idea/
+
+# Lingkungan & Database Dump
+.env
+.env.*
+*.sql
+*.sqlite
+*.sqlite3
+
+# File Media & Arsip
+*.zip
+*.tar.gz
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.svg
+*.mp4

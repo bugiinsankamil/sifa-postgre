@@ -8,6 +8,13 @@ class JenisCuti extends BaseModel
 {
     protected $guarded = [];
 
+    /** Cerminan default migrasi agar model yang baru dibuat langsung aktif. */
+    protected $attributes = [
+        'is_aktif' => true,
+        'is_dibayar' => true,
+        'perlu_lampiran' => false,
+    ];
+
     protected function casts(): array
     {
         return [
