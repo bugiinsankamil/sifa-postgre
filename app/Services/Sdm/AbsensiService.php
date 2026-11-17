@@ -66,7 +66,7 @@ class AbsensiService
                 $waktuMasuk = Carbon::parse($tanggal.' '.$absensi->jam_masuk);
 
                 $absensi->terlambat_menit = $waktuMasuk->gt($batasToleransi)
-                    ? $waktuMasuk->diffInMinutes($batasToleransi)
+                    ? (int) abs($batasToleransi->diffInMinutes($waktuMasuk))
                     : 0;
             }
 
@@ -75,7 +75,7 @@ class AbsensiService
                 $waktuPulang = Carbon::parse($tanggal.' '.$absensi->jam_pulang);
 
                 $absensi->pulang_cepat_menit = $waktuPulang->lt($jamSelesai)
-                    ? $waktuPulang->diffInMinutes($jamSelesai)
+                    ? (int) abs($jamSelesai->diffInMinutes($waktuPulang))
                     : 0;
             }
 

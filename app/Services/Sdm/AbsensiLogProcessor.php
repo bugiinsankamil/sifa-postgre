@@ -108,10 +108,13 @@ class AbsensiLogProcessor
             $jam = $waktu->format('H:i:s');
 
             if ($log->tipe === 'masuk') {
-                $absensi->jam_masuk = $jam;
-                $absensi->metode = $log->metode;
-                $absensi->latitude = $log->latitude;
-                $absensi->longitude = $log->longitude;
+                // Ambil jam masuk paling awal bila ada log masuk sebelumnya pada hari yang sama
+                if ($absensi->jam_masuk === null || $jam < $absensi->jam_masuk) {
+                    $absensi->jam_masuk = $jam;
+                    $absensi->metode = $log->metode;
+                    $absensi->latitude = $log->latitude;
+                    $absensi->longitude = $log->longitude;
+                }
 
                 if ($shift !== null) {
                     $jamMulai = Carbon::parse($tanggal.' '.$shift->jam_masuk);
@@ -119,7 +122,7 @@ class AbsensiLogProcessor
 
                     if ($waktu->gt($batasToleransi)) {
                         $absensi->status = 'terlambat';
-                        $absensi->terlambat_menit = $batasToleransi->diffInMinutes($waktu);
+                        $absensi->terlambat_menit = (int) abs($batasToleransi->diffInMinutes($waktu));
                     } else {
                         $absensi->status = 'hadir';
                         $absensi->terlambat_menit = 0;
@@ -128,15 +131,17 @@ class AbsensiLogProcessor
                     $absensi->status = 'hadir';
                 }
             } elseif ($log->tipe === 'pulang') {
-                $absensi->jam_pulang = $jam;
+                // Ambil jam pulang paling akhir bila ada log pulang sebelumnya pada hari yang sama
+                if ($absensi->jam_pulang === null || $jam > $absensi->jam_pulang) {
+                    $absensi->jam_pulang = $jam;
+                }
 
-                if ($shift !== null && $absensi->status === 'hadir') {
+                // Pulang cepat dihitung untuk hadir maupun terlambat
+                if ($shift !== null && in_array($absensi->status, ['hadir', 'terlambat'], true)) {
                     $jamSelesai = Carbon::parse($tanggal.' '.$shift->jam_pulang);
-                    if ($waktu->lt($jamSelesai)) {
-                        $absensi->pulang_cepat_menit = $waktu->diffInMinutes($jamSelesai);
-                    } else {
-                        $absensi->pulang_cepat_menit = 0;
-                    }
+                    $absensi->pulang_cepat_menit = $waktu->lt($jamSelesai)
+                        ? (int) abs($jamSelesai->diffInMinutes($waktu))
+                        : 0;
                 }
             }
 
@@ -145,5 +150,35 @@ class AbsensiLogProcessor
 
             return $absensi;
         });
+    }
+
+    /**
+     * Proses semua log mentah yang belum diproses (diproses_pada IS NULL).
+     * Dipakai oleh scheduled command atau admin untuk memastikan absensi harian terkini.
+     */
+    public function prosesSemuaLogMentah(?int $limit = null): int
+    {
+        $query = AbsensiLogMentah::query()
+            ->whereNull('diproses_pada')
+            ->orderBy('waktu');
+
+        if ($limit !== null) {
+            $query->limit($limit);
+        }
+
+        $logs = $query->get();
+        $berhasil = 0;
+
+        foreach ($logs as $log) {
+            try {
+                $this->prosesLogMentah($log);
+                $berhasil++;
+            } catch (\RuntimeException $e) {
+                // Gagal proses log; log tetap belum diproses dan bisa diulang
+                Log::warning('Gagal memproses absensi log mentah #'.$log->id.': '.$e->getMessage());
+            }
+        }
+
+        return $berhasil;
     }
 }

@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('pesan:kirim')->everyMinute()->withoutOverlapping();
+Schedule::command('absensi:proses-log')->everyFiveMinutes()->withoutOverlapping();

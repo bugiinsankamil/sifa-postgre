@@ -2,7 +2,7 @@
 Proyek ERP SIT Fathona. Baca HANDOVER.md sebelum bekerja. Pengguna berbahasa Indonesia; jawab dalam bahasa Indonesia.
 
 # Aturan teknis
-- Laravel 11/13 + PostgreSQL 14+ + Filament 5 (API sama dengan v4). Tes selalu di PostgreSQL, bukan SQLite.
+- Laravel 13 + PostgreSQL 14+ + Filament 5 (API sama dengan v4). Tes selalu di PostgreSQL, bukan SQLite.
 - Tabel tunggal berbahasa Indonesia; model extends App\Models\BaseModel; hasMany/hasOne wajib FK eksplisit.
 - Data per cabang: trait BerLingkupCabang + App\Support\CabangKonteks; alur publik memakai withoutGlobalScopes().
 - Peran lewat App\Services\PenugasanPeran (team 0 = yayasan), bukan assignRole langsung.

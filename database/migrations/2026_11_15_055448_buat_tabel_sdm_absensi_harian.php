@@ -35,6 +35,8 @@ return new class extends Migration
         });
         DB::statement("ALTER TABLE absensi_log_mentah ADD CONSTRAINT alm_metode_chk CHECK (metode IN ('mesin','gps','qrcode','manual'))");
         DB::statement("ALTER TABLE absensi_log_mentah ADD CONSTRAINT alm_tipe_chk CHECK (tipe IN ('masuk','pulang'))");
+        // Deduplikasi log di tingkat database: satu scan id per perangkat
+        DB::statement('CREATE UNIQUE INDEX absensi_log_mentah_dedup ON absensi_log_mentah (perangkat_id, id_unik_perangkat) WHERE perangkat_id IS NOT NULL AND id_unik_perangkat IS NOT NULL');
 
         Schema::create('absensi_pegawai', function (Blueprint $table) {
             $table->id();
