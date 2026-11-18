@@ -17,6 +17,8 @@ class AbsensiPegawai extends BaseModel
             'tanggal' => 'date',
             'terlambat_menit' => 'integer',
             'pulang_cepat_menit' => 'integer',
+            'pengajuan_cuti_id' => 'integer',
+            'pengajuan_izin_id' => 'integer',
         ];
     }
 
@@ -38,5 +40,15 @@ class AbsensiPegawai extends BaseModel
     public function diajukanOleh(): BelongsTo
     {
         return $this->belongsTo(User::class, 'diajukan_oleh');
+    }
+
+    public function pengajuanCuti(): BelongsTo
+    {
+        return $this->belongsTo(PengajuanCuti::class, 'pengajuan_cuti_id');
+    }
+
+    public function pengajuanIzin(): BelongsTo
+    {
+        return $this->belongsTo(PengajuanIzin::class, 'pengajuan_izin_id');
     }
 }

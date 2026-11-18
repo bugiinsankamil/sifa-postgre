@@ -23,4 +23,9 @@ class UnitKerja extends BaseModel
     {
         return $this->belongsTo(Cabang::class, 'cabang_id');
     }
+
+    public function kepala(): BelongsTo
+    {
+        return $this->belongsTo(Pegawai::class, 'kepala_pegawai_id');
+    }
 }
