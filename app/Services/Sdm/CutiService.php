@@ -99,6 +99,7 @@ class CutiService
     {
         return DB::transaction(function () use ($pengajuan, $penyetuju) {
             $terkunci = PengajuanCuti::query()->lockForUpdate()->findOrFail($pengajuan->id);
+            app(OtorisasiPersetujuan::class)->pastikan($penyetuju, $terkunci->cabang_id, $terkunci->pegawai);
             if ($terkunci->status !== 'diajukan') {
                 throw new SdmException('Pengajuan cuti sudah diproses.');
             }
@@ -143,6 +144,7 @@ class CutiService
     {
         return DB::transaction(function () use ($pengajuan, $penyetuju, $alasanPenolakan) {
             $terkunci = PengajuanCuti::query()->lockForUpdate()->findOrFail($pengajuan->id);
+            app(OtorisasiPersetujuan::class)->pastikan($penyetuju, $terkunci->cabang_id, $terkunci->pegawai);
             if ($terkunci->status !== 'diajukan') {
                 throw new SdmException('Pengajuan cuti sudah diproses.');
             }

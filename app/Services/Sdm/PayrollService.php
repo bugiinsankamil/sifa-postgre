@@ -192,13 +192,18 @@ class PayrollService
         }
 
         return DB::transaction(function () use ($periode) {
+            $terkunci = PeriodeGaji::query()->lockForUpdate()->findOrFail($periode->id);
+            if ($terkunci->status !== 'dihitung') {
+                throw new SdmException('Periode gaji sudah disetujui atau belum dihitung.');
+            }
+
             SlipGaji::query()
-                ->where('periode_id', $periode->id)
+                ->where('periode_id', $terkunci->id)
                 ->update(['status' => 'disetujui']);
 
-            $periode->update(['status' => 'disetujui']);
+            $terkunci->update(['status' => 'disetujui']);
 
-            return $periode;
+            return $terkunci;
         });
     }
 
@@ -212,16 +217,21 @@ class PayrollService
         }
 
         return DB::transaction(function () use ($periode, $tanggalBayar) {
+            $terkunci = PeriodeGaji::query()->lockForUpdate()->findOrFail($periode->id);
+            if ($terkunci->status !== 'disetujui') {
+                throw new SdmException('Periode gaji sudah dibayar atau belum disetujui.');
+            }
+
             SlipGaji::query()
-                ->where('periode_id', $periode->id)
+                ->where('periode_id', $terkunci->id)
                 ->update([
                     'status' => 'dibayar',
                     'tanggal_bayar' => $tanggalBayar,
                 ]);
 
-            $periode->update(['status' => 'dibayar']);
+            $terkunci->update(['status' => 'dibayar']);
 
-            return $periode;
+            return $terkunci;
         });
     }
 }

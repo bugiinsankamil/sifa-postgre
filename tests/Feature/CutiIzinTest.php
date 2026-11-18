@@ -62,6 +62,8 @@ class CutiIzinTest extends TestCase
             'username' => 'penyetuju',
             'password' => 'pw',
         ]);
+        $this->seed(\Database\Seeders\PeranSeeder::class);
+        app(\App\Services\PenugasanPeran::class)->berikan($this->penyetuju, \App\Enums\Peran::KepalaCabang, $this->cabang->id);
     }
 
     public function test_ajukan_cuti_dengan_saldo(): void

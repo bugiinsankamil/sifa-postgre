@@ -50,8 +50,8 @@ class AbsensiResource extends Resource
             Section::make('Data absensi')->columns(2)->schema([
                 Select::make('pegawai_id')->label('Pegawai')
                     ->options(fn () => PegawaiResource::getEloquentQuery()->get()->pluck('orang.nama_lengkap', 'id'))
-                    ->required()->searchable(),
-                DatePicker::make('tanggal')->required(),
+                    ->required()->searchable()->disabledOn('edit'),
+                DatePicker::make('tanggal')->required()->disabledOn('edit'),
                 Select::make('status')->options([
                     'hadir' => 'Hadir', 'terlambat' => 'Terlambat',
                     'izin' => 'Izin', 'sakit' => 'Sakit',
@@ -99,6 +99,7 @@ class AbsensiResource extends Resource
                 Action::make('catat_manual')
                     ->label('Koreksi')
                     ->icon('heroicon-o-pencil-square')
+                    ->authorize(fn (AbsensiPegawai $record) => static::canEdit($record))
                     ->schema([
                         Select::make('status')->options([
                             'hadir' => 'Hadir', 'terlambat' => 'Terlambat',

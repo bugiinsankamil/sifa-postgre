@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BerLingkupCabang;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KpiPeriode extends BaseModel
 {
+    use BerLingkupCabang;
+
     protected $guarded = [];
 
     protected function casts(): array

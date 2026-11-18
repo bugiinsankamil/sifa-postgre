@@ -168,8 +168,15 @@ class KpiService
             throw new SdmException('Penilaian harus difinalisasi terlebih dahulu.');
         }
 
-        $penilaian->update(['status' => 'disetujui']);
+        return DB::transaction(function () use ($penilaian) {
+            $terkunci = KpiPenilaian::query()->lockForUpdate()->findOrFail($penilaian->id);
+            if ($terkunci->status !== 'dinilai') {
+                throw new SdmException('Penilaian sudah disetujui atau tidak dapat disetujui.');
+            }
 
-        return $penilaian;
+            $terkunci->update(['status' => 'disetujui']);
+
+            return $terkunci;
+        });
     }
 }

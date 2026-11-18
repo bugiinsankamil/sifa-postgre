@@ -55,7 +55,7 @@ class PengajuanCutiResource extends Resource
                 DatePicker::make('tanggal_selesai')->required()->afterOrEqual('tanggal_mulai'),
                 TextInput::make('jumlah_hari')->numeric()->required()->minValue(1),
                 Select::make('pengganti_id')->label('Pengganti')
-                    ->options(fn () => Pegawai::query()->with('orang')->get()->pluck('orang.nama_lengkap', 'id'))
+                    ->options(fn () => PegawaiResource::getEloquentQuery()->get()->pluck('orang.nama_lengkap', 'id'))
                     ->nullable()->searchable(),
                 Textarea::make('alasan')->columnSpan(2)->rows(2),
             ]),

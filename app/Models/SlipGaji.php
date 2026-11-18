@@ -2,12 +2,26 @@
 
 namespace App\Models;
 
+use App\Support\CabangKonteks;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SlipGaji extends BaseModel
 {
     protected $guarded = [];
+
+    /**
+     * Pembatasan cabang berdasarkan periode (tanpa trait karena tidak punya cabang_id langsung).
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('lingkup_cabang', function ($builder) {
+            $ids = app(CabangKonteks::class)->cabangDiizinkan();
+            if ($ids !== null) {
+                $builder->whereHas('periode', fn ($q) => $q->whereIn('cabang_id', $ids));
+            }
+        });
+    }
 
     protected function casts(): array
     {

@@ -59,6 +59,7 @@ class IzinService
     {
         return DB::transaction(function () use ($pengajuan, $penyetuju) {
             $terkunci = PengajuanIzin::query()->lockForUpdate()->findOrFail($pengajuan->id);
+            app(OtorisasiPersetujuan::class)->pastikan($penyetuju, $terkunci->cabang_id, $terkunci->pegawai);
             if ($terkunci->status !== 'diajukan') {
                 throw new SdmException('Pengajuan izin sudah diproses.');
             }
@@ -82,6 +83,7 @@ class IzinService
     {
         return DB::transaction(function () use ($pengajuan, $penyetuju, $alasanPenolakan) {
             $terkunci = PengajuanIzin::query()->lockForUpdate()->findOrFail($pengajuan->id);
+            app(OtorisasiPersetujuan::class)->pastikan($penyetuju, $terkunci->cabang_id, $terkunci->pegawai);
             if ($terkunci->status !== 'diajukan') {
                 throw new SdmException('Pengajuan izin sudah diproses.');
             }

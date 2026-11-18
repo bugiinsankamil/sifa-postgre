@@ -194,10 +194,7 @@ class PanelSdmTest extends TestCase
             'kuota_hari_tahunan' => 5,
         ]);
 
-        // Tes ini memastikan exception dari service ditangkap dengan benar oleh Filament
-        $this->expectException(\App\Exceptions\Sdm\SdmException::class);
-        $this->expectExceptionMessage('Sisa cuti tidak mencukupi');
-
+        // Exception domain ditangkap halaman (notifikasi), tidak bocor sebagai error 500
         \Livewire\Livewire::test(\App\Filament\Resources\Sdm\Pages\CreatePengajuanCuti::class)
             ->fillForm([
                 'pegawai_id' => $pegawai->id,
@@ -207,7 +204,10 @@ class PanelSdmTest extends TestCase
                 'jumlah_hari' => 10,
                 'alasan' => 'Liburan panjang',
             ])
-            ->call('create');
+            ->call('create')
+            ->assertNotified('Gagal mengajukan cuti');
+
+        $this->assertDatabaseMissing('pengajuan_cuti', ['pegawai_id' => $pegawai->id]);
     }
 
     public function test_admin_tidak_bisa_setujui_cuti(): void
@@ -232,6 +232,20 @@ class PanelSdmTest extends TestCase
         );
 
         $this->assertFalse(\App\Filament\Resources\Sdm\PengajuanCutiResource::canApprovePengajuan());
+
+        // Paksa eksekusi aksi lewat panel: Filament boleh menolak diam-diam atau melempar, status tetap tidak berubah
+        try {
+            \Livewire\Livewire::test(\App\Filament\Resources\Sdm\Pages\ListPengajuanCuti::class)
+                ->callTableAction('setujui', $pengajuan);
+        } catch (\Throwable) {
+            // penolakan aksi tanpa hak diharapkan
+        }
+
+        $this->assertSame('diajukan', $pengajuan->fresh()->status);
+
+        // Service juga menolak walau dipanggil langsung
+        $this->expectException(\App\Exceptions\Sdm\SdmException::class);
+        app(\App\Services\Sdm\CutiService::class)->setujui($pengajuan, $user);
     }
 
     public function test_kepala_cabang_bisa_setujui_cuti(): void

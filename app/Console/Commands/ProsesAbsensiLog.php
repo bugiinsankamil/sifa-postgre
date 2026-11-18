@@ -11,15 +11,22 @@ use Illuminate\Console\Command;
  */
 class ProsesAbsensiLog extends Command
 {
-    protected $signature = 'absensi:proses-log {--limit= : Batasi jumlah log yang diproses}';
+    protected $signature = 'absensi:proses-log {--limit=500 : Batasi jumlah log yang diproses}';
     protected $description = 'Proses log mentah absensi menjadi absensi harian';
 
     public function handle(AbsensiLogProcessor $processor): int
     {
-        $limit = $this->option('limit') ? (int) $this->option('limit') : null;
+        $limit = (int) $this->option('limit');
+        if ($limit < 1) {
+            $limit = AbsensiLogProcessor::BATCH_BAWAAN;
+        }
+
         $jumlah = $processor->prosesSemuaLogMentah($limit);
 
         $this->info('Berhasil memproses '.$jumlah.' log absensi.');
+        if ($processor->gagal > 0) {
+            $this->warn($processor->gagal.' log gagal diproses; lihat panel Log Absensi Gagal.');
+        }
 
         return self::SUCCESS;
     }

@@ -7,6 +7,7 @@ use App\Models\AbsensiPegawai;
 use App\Models\Pegawai;
 use App\Models\PegawaiShift;
 use App\Models\PenugasanPegawai;
+use App\Support\CabangKonteks;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -23,20 +24,35 @@ class AbsensiService
      */
     public function catatManual(Pegawai $pegawai, string $tanggal, array $data, ?int $diajukanOleh = null): AbsensiPegawai
     {
-        $penugasan = $this->penugasanAktifPada($pegawai, $tanggal);
+        // Tanpa global scope agar penugasan di cabang lain tetap ditemukan lalu ditolak lewat pemeriksaan cabang di bawah
+        $penugasan = $this->penugasanAktifPada($pegawai, $tanggal, false);
         if ($penugasan === null) {
             throw new SdmException('Pegawai tidak memiliki penugasan aktif pada tanggal '.$tanggal.'.');
         }
 
-        $shift = $this->shiftPada($pegawai, $tanggal);
+        // Pengguna hanya boleh mencatat absensi untuk cabang yang berhak diaksesnya (console/queue tidak dibatasi)
+        $diizinkan = app(CabangKonteks::class)->cabangDiizinkan();
+        if ($diizinkan !== null && ! in_array((int) $penugasan->cabang_id, $diizinkan, true)) {
+            throw new SdmException('Anda tidak berhak mencatat absensi pegawai cabang lain.');
+        }
 
-        return DB::transaction(function () use ($pegawai, $penugasan, $shift, $tanggal, $data, $diajukanOleh) {
+        $shift = $this->shiftPada($pegawai, $tanggal);
+        $dariPersetujuan = isset($data['pengajuan_cuti_id']) || isset($data['pengajuan_izin_id']);
+
+        return DB::transaction(function () use ($pegawai, $penugasan, $shift, $tanggal, $data, $diajukanOleh, $dariPersetujuan) {
             $absensi = AbsensiPegawai::query()
+                ->withoutGlobalScopes()
                 ->lockForUpdate()
                 ->firstOrNew([
                     'pegawai_id' => $pegawai->id,
                     'tanggal' => $tanggal,
                 ]);
+
+            // Absensi hasil persetujuan cuti/izin hanya berubah lewat pembatalan pengajuannya
+            if ($absensi->exists && ! $dariPersetujuan
+                && ($absensi->pengajuan_cuti_id !== null || $absensi->pengajuan_izin_id !== null)) {
+                throw new SdmException('Absensi ini berasal dari cuti/izin yang disetujui. Batalkan pengajuannya untuk mengubah.');
+            }
 
             if (! $absensi->exists) {
                 $absensi->fill([
@@ -105,9 +121,14 @@ class AbsensiService
     /**
      * Penugasan aktif pada tanggal tertentu (penentuan cabang).
      */
-    public function penugasanAktifPada(Pegawai $pegawai, string $tanggal): ?PenugasanPegawai
+    public function penugasanAktifPada(Pegawai $pegawai, string $tanggal, bool $denganLingkupCabang = true): ?PenugasanPegawai
     {
-        return PenugasanPegawai::query()
+        $query = PenugasanPegawai::query();
+        if (! $denganLingkupCabang) {
+            $query->withoutGlobalScopes();
+        }
+
+        return $query
             ->where('pegawai_id', $pegawai->id)
             ->where('tmt', '<=', $tanggal)
             ->where(fn ($q) => $q->whereNull('tanggal_akhir')->orWhere('tanggal_akhir', '>=', $tanggal))
