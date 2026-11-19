@@ -84,6 +84,21 @@ class IzinService
 
 
     /** Persetujuan tingkat 1: atasan langsung. diajukan → disetujui_atasan. */
+    public function ubahPengajuan(PengajuanIzin $pengajuan, ?string $alasan): PengajuanIzin
+    {
+        return DB::transaction(function () use ($pengajuan, $alasan) {
+            $terkunci = PengajuanIzin::query()->lockForUpdate()->findOrFail($pengajuan->id);
+
+            if ($terkunci->status !== 'diajukan') {
+                throw new SdmException('Pengajuan izin yang sudah diproses tidak dapat diubah.');
+            }
+
+            $terkunci->update(['alasan' => $alasan]);
+
+            return $terkunci;
+        });
+    }
+
     public function setujuiAtasan(PengajuanIzin $pengajuan, User $penyetuju): PengajuanIzin
     {
         return DB::transaction(function () use ($pengajuan, $penyetuju) {

@@ -13,17 +13,14 @@ class EditPengajuanIzin extends EditRecord
 
     protected function handleRecordUpdate(\Illuminate\Database\Eloquent\Model $record, array $data): \Illuminate\Database\Eloquent\Model
     {
-        if ($record->status !== 'diajukan') {
-            Notification::make()->title('Gagal')->body('Pengajuan izin yang sudah diproses tidak dapat diubah.')->danger()->send();
+        try {
+            return app(\App\Services\Sdm\IzinService::class)->ubahPengajuan(
+                $record, $data['alasan'] ?? $record->alasan,
+            );
+        } catch (\App\Exceptions\Sdm\SdmException $e) {
+            Notification::make()->title('Gagal mengubah izin')->body($e->getMessage())->danger()->send();
 
             throw new Halt();
         }
-
-        // Pegawai, jenis, dan tanggal tidak diubah dari sini; hanya alasan.
-        $record->update([
-            'alasan' => $data['alasan'] ?? $record->alasan,
-        ]);
-
-        return $record;
     }
 }

@@ -91,6 +91,21 @@ class CutiService
     }
 
     /** Persetujuan tingkat 1: atasan langsung (kepala unit kerja). diajukan → disetujui_atasan. */
+    public function ubahPengajuan(PengajuanCuti $pengajuan, ?string $alasan, ?Pegawai $pengganti): PengajuanCuti
+    {
+        return DB::transaction(function () use ($pengajuan, $alasan, $pengganti) {
+            $terkunci = PengajuanCuti::query()->lockForUpdate()->findOrFail($pengajuan->id);
+
+            if ($terkunci->status !== 'diajukan') {
+                throw new SdmException('Pengajuan cuti yang sudah diproses tidak dapat diubah.');
+            }
+
+            $terkunci->update(['alasan' => $alasan, 'pengganti_id' => $pengganti?->id]);
+
+            return $terkunci;
+        });
+    }
+
     public function setujuiAtasan(PengajuanCuti $pengajuan, User $penyetuju): PengajuanCuti
     {
         return DB::transaction(function () use ($pengajuan, $penyetuju) {

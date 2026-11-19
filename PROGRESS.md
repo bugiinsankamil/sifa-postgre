@@ -69,8 +69,8 @@
 
 ### Pekerjaan tersisa
 
-- [ ] **P1.1 Form dan aksi:** perbarui `Create/EditPengajuanCuti` dan `Create/EditPengajuanIzin`. Hapus `jumlahHari`; terima tanggal dan sesi, panggil service dalam `handleRecordCreation/Update`, tampilkan exception sebagai notifikasi. Jangan menulis saldo/absensi langsung dari Filament.
-- [ ] **P1.2 Resource:** sesuaikan `PengajuanCutiResource` dan `PengajuanIzinResource` dengan transisi `diajukan` → persetujuan atasan → persetujuan final. Ganti `setujui()`; tambahkan tolak dan batal dengan alasan; validasi otorisasi di service, bukan hanya `visible()`.
+- [x] **P1.1 Form dan aksi:** perbarui `Create/EditPengajuanCuti` dan `Create/EditPengajuanIzin`. Hapus `jumlahHari`; terima tanggal dan sesi, panggil service dalam `handleRecordCreation/Update`, tampilkan exception sebagai notifikasi. Jangan menulis saldo/absensi langsung dari Filament. *(belum diverifikasi manual/test)*
+- [x] **P1.2 Resource:** sesuaikan `PengajuanCutiResource` dan `PengajuanIzinResource` dengan transisi `diajukan` → persetujuan atasan → persetujuan final. Ganti `setujui()`; tambahkan tolak dan batal dengan alasan; validasi otorisasi di service, bukan hanya `visible()`. *(belum diverifikasi manual/test)*
 - [ ] **P1.3 Master:** buat `JenisCutiResource`; `SaldoCutiResource` read-only dengan penyesuaian melalui `MutasiSaldoCutiService` dan alasan wajib; `HariLiburResource` dengan cabang, tanggal, dan nama. Lindungi master dari penghapusan yang merusak histori.
 - [ ] **P1.4 Migrasi dan tes:** jalankan migrasi test; perbarui `CutiIzinTest`, `AbsensiAndalTest`, dan `PanelSdmTest`. Uji hari kerja/libur, setengah hari, lintas tahun, carry-over, benturan, otorisasi, pembatalan/restore absensi, idempotensi persetujuan, atomisitas saldo, dan akses cabang/peran. Uji Livewire untuk setiap action dan panel master.
 - [ ] **P1.5 Penutupan:** hapus pemanggil lama, cek migrasi development tanpa `migrate:fresh`, verifikasi manual, perbarui HANDOVER.
@@ -214,7 +214,7 @@
 
 ## Langkah Berikutnya (aktif)
 
-1. **P1.1–P1.2:** selaraskan form/resource cuti/izin dengan API baru; hapus pemanggil `setujui()` dan input `jumlahHari`.
+1. **P1.3:** buat panel Jenis Cuti, Saldo Cuti (read-only + penyesuaian bermutasi), Hari Libur.
 2. **P1.3:** buat panel Jenis Cuti, Saldo Cuti (read-only + penyesuaian bermutasi), Hari Libur.
 3. **P1.4–P1.5:** perbarui tes PostgreSQL untuk regresi/alur bertingkat, jalankan verifikasi migrasi/test yang disetujui, tutup Paket C lalu mulai P2.0.
 

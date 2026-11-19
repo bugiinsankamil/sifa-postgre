@@ -160,7 +160,6 @@ class PanelSdmTest extends TestCase
                 'jenis_cuti_id' => $jenis->id,
                 'tanggal_mulai' => today()->toDateString(),
                 'tanggal_selesai' => today()->addDays(2)->toDateString(),
-                'jumlah_hari' => 3,
                 'alasan' => 'Liburan keluarga',
             ])
             ->call('create')
@@ -201,7 +200,6 @@ class PanelSdmTest extends TestCase
                 'jenis_cuti_id' => $jenis->id,
                 'tanggal_mulai' => today()->toDateString(),
                 'tanggal_selesai' => today()->addDays(10)->toDateString(),
-                'jumlah_hari' => 10,
                 'alasan' => 'Liburan panjang',
             ])
             ->call('create')
@@ -236,7 +234,7 @@ class PanelSdmTest extends TestCase
         // Paksa eksekusi aksi lewat panel: Filament boleh menolak diam-diam atau melempar, status tetap tidak berubah
         try {
             \Livewire\Livewire::test(\App\Filament\Resources\Sdm\Pages\ListPengajuanCuti::class)
-                ->callTableAction('setujui', $pengajuan);
+                ->callTableAction('setujuiFinal', $pengajuan);
         } catch (\Throwable) {
             // penolakan aksi tanpa hak diharapkan
         }
@@ -245,7 +243,7 @@ class PanelSdmTest extends TestCase
 
         // Service juga menolak walau dipanggil langsung
         $this->expectException(\App\Exceptions\Sdm\SdmException::class);
-        app(\App\Services\Sdm\CutiService::class)->setujui($pengajuan, $user);
+        app(\App\Services\Sdm\CutiService::class)->setujuiFinal($pengajuan, $user);
     }
 
     public function test_kepala_cabang_bisa_setujui_cuti(): void
@@ -272,7 +270,35 @@ class PanelSdmTest extends TestCase
         $this->assertTrue(\App\Filament\Resources\Sdm\PengajuanCutiResource::canApprovePengajuan());
 
         // Eksekusi persetujuan via service
-        app(\App\Services\Sdm\CutiService::class)->setujui($pengajuan, $user);
+        app(\App\Services\Sdm\CutiService::class)->setujuiFinal($pengajuan, $user);
+        $this->assertEquals('disetujui', $pengajuan->fresh()->status);
+    }
+
+    public function test_kepala_cabang_bisa_setujui_cuti_via_panel(): void
+    {
+        $user = $this->pengguna('kepala1', Peran::KepalaCabang, $this->cabang->id);
+        $this->actingAs($user);
+        $pegawai = $this->pegawai();
+
+        $jabatan = \App\Models\Jabatan::create(['kode' => 'GURU', 'nama' => 'Guru', 'kategori' => 'fungsional', 'is_aktif' => true]);
+        \App\Models\PenugasanPegawai::create([
+            'pegawai_id' => $pegawai->id,
+            'cabang_id' => $this->cabang->id,
+            'jabatan_id' => $jabatan->id,
+            'tmt' => today(),
+            'is_utama' => true,
+        ]);
+
+        $jenis = \App\Models\JenisCuti::create(['kode' => 'CT', 'nama' => 'Cuti Tahunan', 'kuota_hari_tahunan' => 12]);
+
+        $pengajuan = app(\App\Services\Sdm\CutiService::class)->ajukan(
+            $pegawai, $jenis, today()->toDateString(), today()->addDays(2)->toDateString(), 3, 'Liburan'
+        );
+
+        \Livewire\Livewire::test(\App\Filament\Resources\Sdm\Pages\ListPengajuanCuti::class)
+            ->callTableAction('setujuiFinal', $pengajuan)
+            ->assertNotified('Cuti disetujui');
+
         $this->assertEquals('disetujui', $pengajuan->fresh()->status);
     }
 

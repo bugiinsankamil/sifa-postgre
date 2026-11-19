@@ -15,6 +15,7 @@ use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -54,6 +55,12 @@ class PengajuanIzinResource extends Resource
                     ])->required(),
                 DatePicker::make('tanggal_mulai')->required(),
                 DatePicker::make('tanggal_selesai')->required()->afterOrEqual('tanggal_mulai'),
+                Repeater::make('hari_sesi')->label('Sesi khusus per tanggal')
+                    ->helperText('Tanggal tanpa sesi khusus dihitung sehari penuh; hari libur tidak dihitung.')
+                    ->schema([
+                        DatePicker::make('tanggal')->required()->distinct(),
+                        Select::make('sesi')->options(['pagi' => 'Pagi (½ hari)', 'siang' => 'Siang (½ hari)', 'penuh' => 'Penuh'])->required(),
+                    ])->columns(2)->defaultItems(0)->columnSpanFull()->visibleOn('create'),
                 Textarea::make('alasan')->columnSpan(2)->rows(2),
             ]),
         ]);
@@ -77,7 +84,7 @@ class PengajuanIzinResource extends Resource
             ->defaultSort('created_at', 'desc')
             ->filters([
                 SelectFilter::make('status')->options([
-                    'diajukan' => 'Diajukan', 'disetujui' => 'Disetujui',
+                    'diajukan' => 'Diajukan', 'disetujui_atasan' => 'Disetujui atasan', 'disetujui' => 'Disetujui',
                     'ditolak' => 'Ditolak', 'dibatalkan' => 'Dibatalkan',
                 ]),
                 SelectFilter::make('jenis')->options([
@@ -86,34 +93,52 @@ class PengajuanIzinResource extends Resource
             ])
             ->recordActions([
                 ViewAction::make(),
-                EditAction::make(),
-                Action::make('setujui')
-                    ->label('Setujui')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
+                EditAction::make()->visible(fn (PengajuanIzin $r) => $r->status === 'diajukan'),
+                Action::make('setujuiAtasan')->label('Setujui (atasan)')
+                    ->icon('heroicon-o-check')->color('info')
                     ->visible(fn (PengajuanIzin $r) => $r->status === 'diajukan')
+                    ->action(function (PengajuanIzin $record) {
+                        try {
+                            app(IzinService::class)->setujuiAtasan($record, auth()->user());
+                            Notification::make()->title('Izin disetujui atasan')->success()->send();
+                        } catch (\RuntimeException $e) {
+                            Notification::make()->title('Gagal')->body($e->getMessage())->danger()->send();
+                        }
+                    }),
+                Action::make('setujuiFinal')->label('Setujui final')
+                    ->icon('heroicon-o-check-circle')->color('success')
+                    ->visible(fn (PengajuanIzin $r) => in_array($r->status, ['diajukan', 'disetujui_atasan'], true))
                     ->authorize(fn () => static::canApprovePengajuan())
                     ->action(function (PengajuanIzin $record) {
                         try {
-                            app(IzinService::class)->setujui($record, auth()->user());
+                            app(IzinService::class)->setujuiFinal($record, auth()->user());
                             Notification::make()->title('Izin disetujui')->success()->send();
                         } catch (\RuntimeException $e) {
                             Notification::make()->title('Gagal')->body($e->getMessage())->danger()->send();
                         }
                     }),
-                Action::make('tolak')
-                    ->label('Tolak')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->visible(fn (PengajuanIzin $r) => $r->status === 'diajukan')
+                Action::make('tolak')->label('Tolak')
+                    ->icon('heroicon-o-x-circle')->color('danger')
+                    ->visible(fn (PengajuanIzin $r) => in_array($r->status, ['diajukan', 'disetujui_atasan'], true))
                     ->authorize(fn () => static::canApprovePengajuan())
-                    ->schema([
-                        Textarea::make('alasan')->label('Alasan penolakan')->rows(2),
-                    ])
+                    ->schema([Textarea::make('alasan')->label('Alasan penolakan')->required()->rows(2)])
                     ->action(function (PengajuanIzin $record, array $data) {
                         try {
-                            app(IzinService::class)->tolak($record, auth()->user(), $data['alasan'] ?? null);
+                            app(IzinService::class)->tolak($record, auth()->user(), $data['alasan']);
                             Notification::make()->title('Izin ditolak')->success()->send();
+                        } catch (\RuntimeException $e) {
+                            Notification::make()->title('Gagal')->body($e->getMessage())->danger()->send();
+                        }
+                    }),
+                Action::make('batalkan')->label('Batalkan')
+                    ->icon('heroicon-o-arrow-uturn-left')->color('gray')
+                    ->visible(fn (PengajuanIzin $r) => in_array($r->status, ['diajukan', 'disetujui_atasan', 'disetujui'], true))
+                    ->requiresConfirmation()
+                    ->schema([Textarea::make('alasan')->label('Alasan pembatalan')->required()->rows(2)])
+                    ->action(function (PengajuanIzin $record, array $data) {
+                        try {
+                            app(IzinService::class)->batalkan($record, auth()->user(), $data['alasan']);
+                            Notification::make()->title('Izin dibatalkan')->success()->send();
                         } catch (\RuntimeException $e) {
                             Notification::make()->title('Gagal')->body($e->getMessage())->danger()->send();
                         }
