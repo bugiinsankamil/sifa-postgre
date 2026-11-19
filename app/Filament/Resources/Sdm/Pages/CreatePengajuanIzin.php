@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Sdm\Pages;
 
+use App\Exceptions\Sdm\SdmException;
 use App\Filament\Resources\Sdm\PengajuanIzinResource;
 use App\Filament\Resources\Sdm\PegawaiResource;
 use App\Services\Sdm\IzinService;
@@ -17,15 +18,24 @@ class CreatePengajuanIzin extends CreateRecord
     {
         $pegawai = PegawaiResource::getEloquentQuery()->findOrFail($data['pegawai_id']);
 
+        $sesiPerTanggal = [];
+        foreach (($data['hari_sesi'] ?? []) as $baris) {
+            if (filled($baris['tanggal'] ?? null) && filled($baris['sesi'] ?? null)) {
+                $sesiPerTanggal[$baris['tanggal']] = $baris['sesi'];
+            }
+        }
+
         try {
             return app(IzinService::class)->ajukan(
-                $pegawai,
-                $data['jenis'],
-                $data['tanggal_mulai'],
-                $data['tanggal_selesai'],
-                $data['alasan'] ?? null,
+                pegawai: $pegawai,
+                jenis: $data['jenis'],
+                tanggalMulai: $data['tanggal_mulai'],
+                tanggalSelesai: $data['tanggal_selesai'],
+                alasan: $data['alasan'] ?? null,
+                sesiPerTanggal: $sesiPerTanggal,
+                pengaju: auth()->user(),
             );
-        } catch (\RuntimeException $e) {
+        } catch (SdmException $e) {
             Notification::make()->title('Gagal mengajukan izin')->body($e->getMessage())->danger()->send();
 
             throw new Halt();

@@ -1,6 +1,6 @@
 # Progress Paket C — Cuti/Izin Atomik
 
-## Status: Tahap 1 (C1) Selesai — Migrasi dan Service Helper
+## Status: C1 + C2 Selesai — Migrasi, Service Helper, CutiService, IzinService (panel dan tes belum disesuaikan)
 
 ### Keputusan Bisnis (C0) ✓
 
@@ -36,11 +36,17 @@
 - ✓ `OtorisasiPengajuan.php` — otorisasi atasan/final/penolakan/pembatalan.
 - ✓ `MutasiSaldoCutiService.php` — saldo atomik dengan carry-over dan mutasi append-only.
 
+**Service utama (C2):**
+- ✓ `CutiService.php` — `ajukan(pegawai, jenis, mulai, selesai, alasan, pengganti, sesiPerTanggal, pengaju)`, `setujuiAtasan`, `setujuiFinal`, `tolak` (alasan wajib), `batalkan(pengajuan, pembatal, alasan)` (alasan wajib). Hari dihitung otomatis; saldo dipotong per tahun saat final; benturan cuti+izin; absensi ditimpa via `catatManual`.
+- ✓ `IzinService.php` — signature sama, tanpa saldo: `ajukan(pegawai, jenis, mulai, selesai, alasan, sesiPerTanggal, pengaju)`.
+- Catatan: `setujui()` dihapus. `OtorisasiPersetujuan.php` sudah tidak dipakai service (hapus setelah panel dan tes dimigrasi).
+
 ### File Belum Selesai
 
-**Service utama:**
-- ☐ `CutiService.php` — refactor atomik (ajukan, setujuiAtasan, setujuiFinal, tolak, batalkan) dengan rincian hari, saldo per tahun, validasi benturan.
-- ☐ `IzinService.php` — sama untuk izin/sakit/dinas_luar (tanpa saldo).
+**Pemanggil lama yang RUSAK (pakai `setujui()`/signature lama `jumlahHari`):**
+- ☐ `Filament/Resources/Sdm/Pages/CreatePengajuanCuti.php`, `CreatePengajuanIzin.php`
+- ☐ `Filament/Resources/Sdm/PengajuanCutiResource.php`, `PengajuanIzinResource.php`
+- ☐ `tests/Feature/AbsensiAndalTest.php`, `CutiIzinTest.php`, `PanelSdmTest.php`
 
 **Panel:**
 - ☐ `JenisCutiResource.php`, `SaldoCutiResource.php`, `HariLiburResource.php` (baru).
@@ -53,13 +59,11 @@
 
 ### Langkah Berikutnya
 
-1. **Refactor `CutiService`** — method `ajukan`, `setujuiAtasan`, `setujuiFinal`, `tolak`, `batalkan`; validasi benturan cuti & izin; simpan rincian hari; potong saldo per tahun; semua dalam transaksi terkunci.
+1. **Sesuaikan Create/Resource cuti & izin** ke API baru (hapus input jumlah hari, aksi bertingkat atasan/final/tolak/batalkan dengan alasan).
 
-2. **Refactor `IzinService`** — sama tanpa saldo/mutasi; validasi benturan izin & cuti.
+2. **Buat panel** — Jenis Cuti, Saldo Cuti (read-only + penyesuaian), Hari Libur; perbarui form pengajuan agar hitung hari otomatis.
 
-3. **Buat panel** — Jenis Cuti, Saldo Cuti (read-only + penyesuaian), Hari Libur; perbarui form pengajuan agar hitung hari otomatis.
-
-4. **Tulis tes** — perhitungan, setengah hari, lintas tahun, benturan, otorisasi bertingkat, mutasi, atomisitas, pembatalan.
+3. **Tulis tes** — perhitungan, setengah hari, lintas tahun, benturan, otorisasi bertingkat, mutasi, atomisitas, pembatalan.
 
 ---
 

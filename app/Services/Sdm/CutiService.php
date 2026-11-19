@@ -7,22 +7,32 @@ use App\Models\AbsensiPegawai;
 use App\Models\JenisCuti;
 use App\Models\Pegawai;
 use App\Models\PengajuanCuti;
-use App\Models\SaldoCuti;
+use App\Models\PengajuanIzin;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Pengajuan dan persetujuan cuti pegawai.
- * Setelah disetujui, otomatis menandai absensi_pegawai sebagai 'cuti' pada rentang tanggal.
+ * Pengajuan dan persetujuan cuti atomik: rincian hari, saldo per tahun, persetujuan bertingkat.
+ * Alur: diajukan → disetujui_atasan → disetujui. Pembatalan lewat OtorisasiPengajuan.
  */
 class CutiService
 {
     /**
-     * Buat pengajuan cuti (status diajukan).
+     * Buat pengajuan cuti (status diajukan). Jumlah hari dihitung dari shift + kalender libur.
+     *
+     * @param  array<string, string>  $sesiPerTanggal  Map tanggal => 'penuh'|'pagi'|'siang'.
      */
-    public function ajukan(Pegawai $pegawai, JenisCuti $jenis, string $tanggalMulai, string $tanggalSelesai, int $jumlahHari, ?string $alasan = null, ?Pegawai $pengganti = null): PengajuanCuti
-    {
+    public function ajukan(
+        Pegawai $pegawai,
+        JenisCuti $jenis,
+        string $tanggalMulai,
+        string $tanggalSelesai,
+        ?string $alasan = null,
+        ?Pegawai $pengganti = null,
+        array $sesiPerTanggal = [],
+        ?User $pengaju = null,
+    ): PengajuanCuti {
         if (! $jenis->is_aktif) {
             throw new SdmException('Jenis cuti tidak aktif.');
         }
@@ -31,77 +41,103 @@ class CutiService
             throw new SdmException('Tanggal selesai tidak boleh sebelum tanggal mulai.');
         }
 
-        if ($jumlahHari < 1) {
-            throw new SdmException('Jumlah hari cuti minimal 1.');
+        if (Carbon::parse($tanggalMulai)->lt(today())) {
+            throw new SdmException('Pengajuan cuti untuk tanggal yang sudah lewat tidak diizinkan.');
         }
 
-        $penugasan = app(AbsensiService::class)->penugasanAktifPada($pegawai, $tanggalMulai);
-        if ($penugasan === null) {
-            throw new SdmException('Pegawai tidak memiliki penugasan aktif pada tanggal '.$tanggalMulai.'.');
-        }
+        return DB::transaction(function () use ($pegawai, $jenis, $tanggalMulai, $tanggalSelesai, $alasan, $pengganti, $sesiPerTanggal, $pengaju) {
+            // Kunci pegawai agar pengajuan paralel pegawai yang sama berurutan
+            Pegawai::query()->lockForUpdate()->findOrFail($pegawai->id);
 
-        // Cek pengajuan bertumpang tindih
-        $tumpangTindih = PengajuanCuti::query()
-            ->where('pegawai_id', $pegawai->id)
-            ->whereIn('status', ['diajukan', 'disetujui'])
-            ->where('tanggal_mulai', '<=', $tanggalSelesai)
-            ->where('tanggal_selesai', '>=', $tanggalMulai)
-            ->exists();
-        if ($tumpangTindih) {
-            throw new SdmException('Sudah ada pengajuan cuti pada rentang tanggal tersebut.');
-        }
-
-        // Validasi saldo jika jenis cuti punya kuota
-        if ($jenis->kuota_hari_tahunan !== null) {
-            $tahun = (int) substr($tanggalMulai, 0, 4);
-            $saldo = SaldoCuti::query()
-                ->where('pegawai_id', $pegawai->id)
-                ->where('jenis_cuti_id', $jenis->id)
-                ->where('tahun', $tahun)
-                ->first();
-
-            if ($saldo === null) {
-                // Auto-create saldo dari kuota jenis cuti
-                $saldo = SaldoCuti::create([
-                    'pegawai_id' => $pegawai->id,
-                    'jenis_cuti_id' => $jenis->id,
-                    'tahun' => $tahun,
-                    'kuota' => $jenis->kuota_hari_tahunan,
-                    'terpakai' => 0,
-                ]);
+            $penugasan = app(AbsensiService::class)->penugasanAktifPada($pegawai, $tanggalMulai, false);
+            if ($penugasan === null) {
+                throw new SdmException('Pegawai tidak memiliki penugasan aktif pada tanggal '.$tanggalMulai.'.');
             }
 
-            $sisa = $saldo->kuota - $saldo->terpakai;
-            if ($jumlahHari > $sisa) {
-                throw new SdmException('Sisa cuti tidak mencukupi. Sisa: '.$sisa.' hari, diajukan: '.$jumlahHari.' hari.');
+            if ($pengaju !== null) {
+                app(OtorisasiPengajuan::class)->pastikanBolehMengajukan($pengaju, $pegawai, $penugasan->cabang_id);
             }
-        }
 
-        return PengajuanCuti::create([
-            'pegawai_id' => $pegawai->id,
-            'cabang_id' => $penugasan->cabang_id,
-            'jenis_cuti_id' => $jenis->id,
-            'tanggal_mulai' => $tanggalMulai,
-            'tanggal_selesai' => $tanggalSelesai,
-            'jumlah_hari' => $jumlahHari,
-            'alasan' => $alasan,
-            'pengganti_id' => $pengganti?->id,
-            'status' => 'diajukan',
-        ]);
+            $this->pastikanTanpaBenturan($pegawai, $tanggalMulai, $tanggalSelesai);
+
+            $hitung = app(PerhitunganCutiIzin::class)->hitung($pegawai, $tanggalMulai, $tanggalSelesai, $penugasan->cabang, $sesiPerTanggal);
+            if (bccomp($hitung['jumlah_hari'], '0', 1) <= 0) {
+                throw new SdmException('Tidak ada hari kerja yang terhitung pada rentang tanggal tersebut.');
+            }
+
+            if ($jenis->kuota_hari_tahunan !== null) {
+                $this->pastikanSaldoCukup($pegawai, $jenis, $hitung['per_tahun']);
+            }
+
+            $pengajuan = PengajuanCuti::query()->create([
+                'pegawai_id' => $pegawai->id,
+                'cabang_id' => $penugasan->cabang_id,
+                'jenis_cuti_id' => $jenis->id,
+                'tanggal_mulai' => $tanggalMulai,
+                'tanggal_selesai' => $tanggalSelesai,
+                'jumlah_hari' => $hitung['jumlah_hari'],
+                'jumlah_setengah_hari' => $hitung['jumlah_setengah_hari'],
+                'alasan' => $alasan,
+                'pengganti_id' => $pengganti?->id,
+                'status' => 'diajukan',
+            ]);
+
+            foreach ($hitung['rincian'] as $baris) {
+                $pengajuan->hari()->create($baris);
+            }
+
+            return $pengajuan->load('hari');
+        });
     }
 
-    /**
-     * Setujui pengajuan cuti.
-     * - Potong saldo cuti (jika ada kuota).
-     * - Tandai absensi_pegawai sebagai 'cuti' untuk setiap hari dalam rentang.
-     */
-    public function setujui(PengajuanCuti $pengajuan, User $penyetuju): PengajuanCuti
+    /** Persetujuan tingkat 1: atasan langsung (kepala unit kerja). diajukan → disetujui_atasan. */
+    public function setujuiAtasan(PengajuanCuti $pengajuan, User $penyetuju): PengajuanCuti
     {
         return DB::transaction(function () use ($pengajuan, $penyetuju) {
             $terkunci = PengajuanCuti::query()->lockForUpdate()->findOrFail($pengajuan->id);
-            app(OtorisasiPersetujuan::class)->pastikan($penyetuju, $terkunci->cabang_id, $terkunci->pegawai);
             if ($terkunci->status !== 'diajukan') {
                 throw new SdmException('Pengajuan cuti sudah diproses.');
+            }
+
+            app(OtorisasiPengajuan::class)->pastikanAtasan($terkunci, $penyetuju);
+
+            $terkunci->update([
+                'status' => 'disetujui_atasan',
+                'disetujui_atasan_oleh' => $penyetuju->id,
+                'disetujui_atasan_pada' => now(),
+            ]);
+
+            return $terkunci;
+        });
+    }
+
+    /**
+     * Persetujuan tingkat 2 (final): kepala cabang/HR. disetujui_atasan → disetujui.
+     * Langsung dari diajukan hanya bila pemohon tidak punya atasan lain (tanpa kepala unit, atau pemohon sendiri kepalanya).
+     * Memotong saldo per tahun, mencatat mutasi, dan menandai absensi (menimpa, sumber tercatat).
+     */
+    public function setujuiFinal(PengajuanCuti $pengajuan, User $penyetuju): PengajuanCuti
+    {
+        return DB::transaction(function () use ($pengajuan, $penyetuju) {
+            $terkunci = PengajuanCuti::query()->lockForUpdate()->findOrFail($pengajuan->id);
+            if (! in_array($terkunci->status, ['diajukan', 'disetujui_atasan'], true)) {
+                throw new SdmException('Pengajuan cuti sudah diproses.');
+            }
+
+            $otorisasi = app(OtorisasiPengajuan::class);
+            $otorisasi->pastikanPersetujuanFinal($terkunci, $penyetuju);
+
+            if ($terkunci->status === 'diajukan') {
+                $atasan = $otorisasi->atasanLangsung($terkunci->pegawai, $terkunci->tanggal_mulai->toDateString());
+                if ($atasan !== null && $atasan->id !== $terkunci->pegawai_id) {
+                    throw new SdmException('Pengajuan cuti harus disetujui atasan langsung terlebih dahulu.');
+                }
+            }
+
+            $terkunci->load('jenisCuti', 'pegawai', 'hari');
+
+            if ($terkunci->jenisCuti->kuota_hari_tahunan !== null) {
+                app(MutasiSaldoCutiService::class)->potong($terkunci, $this->pemakaianPerTahun($terkunci), $penyetuju);
             }
 
             $terkunci->update([
@@ -110,44 +146,26 @@ class CutiService
                 'disetujui_pada' => now(),
             ]);
 
-            // Potong saldo dengan lock + re-check
-            $jenis = $terkunci->jenisCuti;
-            if ($jenis->kuota_hari_tahunan !== null) {
-                $tahun = (int) $terkunci->tanggal_mulai->format('Y');
-                $saldo = SaldoCuti::query()
-                    ->where('pegawai_id', $terkunci->pegawai_id)
-                    ->where('jenis_cuti_id', $jenis->id)
-                    ->where('tahun', $tahun)
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($saldo !== null) {
-                    $sisa = $saldo->kuota - $saldo->terpakai;
-                    if ($terkunci->jumlah_hari > $sisa) {
-                        throw new SdmException('Sisa cuti tidak mencukupi saat persetujuan.');
-                    }
-                    $saldo->increment('terpakai', $terkunci->jumlah_hari);
-                }
-            }
-
-            // Tandai absensi untuk setiap hari dalam rentang cuti
             $this->tandaiAbsensiCuti($terkunci);
 
             return $terkunci;
         });
     }
 
-    /**
-     * Tolak pengajuan cuti.
-     */
+    /** Tolak oleh persetujuan final (kepala cabang/HR). Alasan penolakan wajib. */
     public function tolak(PengajuanCuti $pengajuan, User $penyetuju, ?string $alasanPenolakan = null): PengajuanCuti
     {
+        if (blank($alasanPenolakan)) {
+            throw new SdmException('Alasan penolakan wajib diisi.');
+        }
+
         return DB::transaction(function () use ($pengajuan, $penyetuju, $alasanPenolakan) {
             $terkunci = PengajuanCuti::query()->lockForUpdate()->findOrFail($pengajuan->id);
-            app(OtorisasiPersetujuan::class)->pastikan($penyetuju, $terkunci->cabang_id, $terkunci->pegawai);
-            if ($terkunci->status !== 'diajukan') {
+            if (! in_array($terkunci->status, ['diajukan', 'disetujui_atasan'], true)) {
                 throw new SdmException('Pengajuan cuti sudah diproses.');
             }
+
+            app(OtorisasiPengajuan::class)->pastikanPenolakan($terkunci, $penyetuju);
 
             $terkunci->update([
                 'status' => 'ditolak',
@@ -161,68 +179,125 @@ class CutiService
     }
 
     /**
-     * Batalkan pengajuan cuti (oleh pegawai sendiri atau admin).
-     * Jika sudah disetujui, kembalikan saldo dan hapus absensi cuti.
+     * Batalkan: pemohon (status diajukan) atau kepala cabang (semua status aktif). Alasan wajib.
+     * Bila sudah disetujui: saldo dikembalikan (mutasi pengembalian) dan absensi cuti milik pengajuan dihapus.
      */
-    public function batalkan(PengajuanCuti $pengajuan): PengajuanCuti
+    public function batalkan(PengajuanCuti $pengajuan, User $pembatal, ?string $alasan = null): PengajuanCuti
     {
-        return DB::transaction(function () use ($pengajuan) {
+        if (blank($alasan)) {
+            throw new SdmException('Alasan pembatalan wajib diisi.');
+        }
+
+        return DB::transaction(function () use ($pengajuan, $pembatal, $alasan) {
             $terkunci = PengajuanCuti::query()->lockForUpdate()->findOrFail($pengajuan->id);
-            if ($terkunci->status === 'dibatalkan') {
-                throw new SdmException('Pengajuan cuti sudah dibatalkan.');
+            if (in_array($terkunci->status, ['ditolak', 'dibatalkan'], true)) {
+                throw new SdmException('Pengajuan cuti sudah berstatus akhir ('.$terkunci->status.').');
             }
 
-            if ($terkunci->status === 'disetujui') {
-                $jenis = $terkunci->jenisCuti;
-                if ($jenis->kuota_hari_tahunan !== null) {
-                    $tahun = (int) $terkunci->tanggal_mulai->format('Y');
-                    $saldo = SaldoCuti::query()
-                        ->where('pegawai_id', $terkunci->pegawai_id)
-                        ->where('jenis_cuti_id', $jenis->id)
-                        ->where('tahun', $tahun)
-                        ->lockForUpdate()
-                        ->first();
+            app(OtorisasiPengajuan::class)->pastikanPembatalan($terkunci, $pembatal);
 
-                    if ($saldo !== null) {
-                        $saldo->decrement('terpakai', $terkunci->jumlah_hari);
-                    }
+            if ($terkunci->status === 'disetujui') {
+                $terkunci->load('jenisCuti', 'pegawai', 'hari');
+
+                if ($terkunci->jenisCuti->kuota_hari_tahunan !== null) {
+                    app(MutasiSaldoCutiService::class)->kembalikan($terkunci, $pembatal);
                 }
 
-                // Hapus hanya absensi cuti milik pengajuan ini
                 AbsensiPegawai::query()
+                    ->withoutGlobalScopes()
                     ->where('pengajuan_cuti_id', $terkunci->id)
                     ->delete();
             }
 
-            $terkunci->update(['status' => 'dibatalkan']);
+            $terkunci->update([
+                'status' => 'dibatalkan',
+                'dibatalkan_oleh' => $pembatal->id,
+                'dibatalkan_pada' => now(),
+                'alasan_pembatalan' => $alasan,
+            ]);
 
             return $terkunci;
         });
     }
 
-    /**
-     * Tandai absensi_pegawai sebagai 'cuti' untuk setiap hari dalam rentang cuti.
-     */
+    /** Cek benturan dengan pengajuan cuti dan izin yang masih berlaku. */
+    private function pastikanTanpaBenturan(Pegawai $pegawai, string $tanggalMulai, string $tanggalSelesai, ?int $excludePengajuanCutiId = null): void
+    {
+        $tumpukCuti = PengajuanCuti::query()
+            ->where('pegawai_id', $pegawai->id)
+            ->whereIn('status', ['diajukan', 'disetujui_atasan', 'disetujui'])
+            ->where('tanggal_mulai', '<=', $tanggalSelesai)
+            ->where('tanggal_selesai', '>=', $tanggalMulai)
+            ->when($excludePengajuanCutiId, fn ($q) => $q->where('id', '!=', $excludePengajuanCutiId))
+            ->exists();
+
+        if ($tumpukCuti) {
+            throw new SdmException('Sudah ada pengajuan cuti pada rentang tanggal tersebut.');
+        }
+
+        $tumpukIzin = PengajuanIzin::query()
+            ->where('pegawai_id', $pegawai->id)
+            ->whereIn('status', ['diajukan', 'disetujui_atasan', 'disetujui'])
+            ->where('tanggal_mulai', '<=', $tanggalSelesai)
+            ->where('tanggal_selesai', '>=', $tanggalMulai)
+            ->exists();
+
+        if ($tumpukIzin) {
+            throw new SdmException('Sudah ada pengajuan izin pada rentang tanggal tersebut.');
+        }
+    }
+
+    /** Validasi saldo mencukupi untuk setiap tahun (tanpa mengunci saldo, hanya dicek). */
+    private function pastikanSaldoCukup(Pegawai $pegawai, JenisCuti $jenis, array $pemakaianPerTahun): void
+    {
+        foreach ($pemakaianPerTahun as $tahun => $jumlahHari) {
+            $saldo = app(MutasiSaldoCutiService::class)->ambilAtauBuat($pegawai, $jenis, $tahun);
+            $sisa = $saldo->sisa();
+
+            if (bccomp($jumlahHari, $sisa, 1) > 0) {
+                throw new SdmException("Sisa cuti tahun {$tahun} tidak mencukupi. Sisa: {$sisa} hari, diajukan: {$jumlahHari} hari.");
+            }
+        }
+    }
+
+    /** Hitung pemakaian per tahun dari rincian hari (hanya status terhitung). */
+    private function pemakaianPerTahun(PengajuanCuti $pengajuan): array
+    {
+        $per = [];
+        foreach ($pengajuan->hari as $h) {
+            if ($h->status === 'terhitung') {
+                $per[$h->tahun] = bcadd($per[$h->tahun] ?? '0.0', (string) $h->nilai, 1);
+            }
+        }
+
+        return $per;
+    }
+
+    /** Tandai absensi pegawai untuk setiap hari terhitung (menimpa absensi lama, sumber pengajuan tercatat). */
     private function tandaiAbsensiCuti(PengajuanCuti $pengajuan): void
     {
-        $mulai = Carbon::parse($pengajuan->tanggal_mulai);
-        $selesai = Carbon::parse($pengajuan->tanggal_selesai);
         $absensiSvc = app(AbsensiService::class);
 
-        $tanggal = $mulai->copy();
-        while ($tanggal->lte($selesai)) {
-            $tanggalStr = $tanggal->toDateString();
-            $penugasan = $absensiSvc->penugasanAktifPada($pengajuan->pegawai, $tanggalStr);
-
-            if ($penugasan !== null) {
-                $absensiSvc->catatManual($pengajuan->pegawai, $tanggalStr, [
-                    'status' => 'cuti',
-                    'keterangan' => 'Cuti '.$pengajuan->jenisCuti->nama.' (#'.$pengajuan->id.')',
-                    'pengajuan_cuti_id' => $pengajuan->id,
-                ], $pengajuan->disetujui_oleh);
+        foreach ($pengajuan->hari as $h) {
+            if ($h->status !== 'terhitung') {
+                continue;
             }
 
-            $tanggal->addDay();
+            $tanggal = $h->tanggal->toDateString();
+            $penugasan = $absensiSvc->penugasanAktifPada($pengajuan->pegawai, $tanggal, false);
+            if ($penugasan === null) {
+                continue;
+            }
+
+            // catatManual sudah menangani kunci absensi_pegawai dan validasi bahwa absensi cuti/izin tidak diubah manual
+            $absensi = $absensiSvc->catatManual($pengajuan->pegawai, $tanggal, [
+                'status' => 'cuti',
+                'keterangan' => 'Cuti '.$pengajuan->jenisCuti->nama.' (#'.$pengajuan->id.')',
+                'pengajuan_cuti_id' => $pengajuan->id,
+            ], $pengajuan->disetujui_oleh);
+
+            $h->update(['absensi_pegawai_id' => $absensi->id]);
         }
     }
 }
+
