@@ -9,7 +9,9 @@ use App\Models\Pegawai;
 use App\Models\PengajuanCuti;
 use App\Models\SaldoCuti;
 use App\Models\User;
+use App\Support\CabangKonteks;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Manajemen saldo dan mutasi cuti.
@@ -165,6 +167,61 @@ class MutasiSaldoCutiService
     }
 
     /**
+     * Sesuaikan sisa saldo secara manual tanpa mengubah histori.
+     */
+    public function sesuaikan(SaldoCuti $saldo, string $saldoBaru, string $alasan, ?User $pelaku = null): SaldoCuti
+    {
+        $this->pastikanBolehMenyesuaikan($saldo);
+        $alasan = trim($alasan);
+        if ($alasan === '') {
+            throw new SdmException('Alasan penyesuaian saldo wajib diisi.');
+        }
+
+        $saldoBaru = bcadd($saldoBaru, '0', 1);
+        if (bccomp($saldoBaru, '0', 1) < 0) {
+            throw new SdmException('Sisa saldo tidak boleh negatif.');
+        }
+
+        return DB::transaction(function () use ($saldo, $saldoBaru, $alasan, $pelaku) {
+            $saldo = SaldoCuti::query()->lockForUpdate()->findOrFail($saldo->id);
+            $sebelum = $saldo->sisa();
+            if (bccomp($saldoBaru, $sebelum, 1) === 0) {
+                throw new SdmException('Sisa saldo sudah sesuai nilai yang dimasukkan.');
+            }
+
+            $saldo->kuota = bcadd($saldoBaru, (string) $saldo->terpakai, 1);
+            $saldo->dibawa = '0.0';
+            $saldo->save();
+            $this->catatMutasi(
+                pegawai: $saldo->pegawai,
+                jenis: $saldo->jenisCuti,
+                tahun: $saldo->tahun,
+                tipe: 'penyesuaian',
+                jumlahHari: bcsub($saldoBaru, $sebelum, 1),
+                saldoSebelum: $sebelum,
+                saldoSesudah: $saldoBaru,
+                pelaku: $pelaku,
+                keterangan: $alasan,
+            );
+
+            return $saldo->refresh();
+        });
+    }
+
+    private function pastikanBolehMenyesuaikan(SaldoCuti $saldo): void
+    {
+        $cabangIds = app(CabangKonteks::class)->cabangDiizinkan();
+        if ($cabangIds === null) {
+            return;
+        }
+
+        $terdaftar = $saldo->pegawai->penugasan()->whereIn('cabang_id', $cabangIds)->exists();
+        if (! $terdaftar) {
+            throw new SdmException('Anda tidak berhak menyesuaikan saldo pegawai cabang lain.');
+        }
+    }
+
+    /**
      * Catat mutasi saldo append-only.
      */
     private function catatMutasi(
@@ -198,8 +255,11 @@ class MutasiSaldoCutiService
      * Kode deterministik: operasi yang sama untuk sumber yang sama menghasilkan kode yang sama,
      * sehingga unique index menjadi pengaman terakhir terhadap mutasi ganda.
      */
+    /** Pastikan mutasi unik per operasi sumber dan per penyesuaian manual. */
     private function kodeUnik(int $pegawaiId, int $jenisCutiId, int $tahun, string $tipe, ?int $pengajuanId): string
     {
-        return hash('sha256', implode('|', [$pegawaiId, $jenisCutiId, $tahun, $tipe, $pengajuanId ?? '-']));
+        $sumber = $tipe === 'penyesuaian' ? Str::orderedUuid()->toString() : $pengajuanId ?? '-';
+
+        return hash('sha256', implode('|', [$pegawaiId, $jenisCutiId, $tahun, $tipe, $sumber]));
     }
 }

@@ -43,7 +43,7 @@
 ### File Selesai
 
 **Migrasi:**
-- ✓ `2026_11_15_055449_buat_tabel_sdm_cuti_izin.php` — tambah `hari_libur`, `mutasi_saldo_cuti`, `pengajuan_*_hari`, kolom `dibawa`, status bertingkat, FK absensi.
+- ✓ `2026_11_15_055449_buat_tabel_sdm_cuti_izin.php` — tambah `hari_libur`, `mutasi_saldo_cuti`, `pengajuan_*_hari`, kolom `dibawa`, status bertingkat, FK absensi. FK `mutasi_saldo_cuti.pengajuan_cuti_id` dipindah ke `Schema::table` setelah tabel `pengajuan_cuti` dibuat; `down()` dibalik (mutasi sebelum pengajuan).
 - ✓ `2026_11_18_040409_tambah_kepala_unit_pada_unit_kerja.php` — kolom `kepala_pegawai_id`.
 - ✗ `2026_11_17_050220_perbaiki_sdm_cuti_izin.php` — dihapus (digabung).
 
@@ -60,7 +60,7 @@
 **Service helper:**
 - ✓ `PerhitunganCutiIzin.php` — hitung hari efektif, rincian per tanggal.
 - ✓ `OtorisasiPengajuan.php` — otorisasi atasan/final/penolakan/pembatalan.
-- ✓ `MutasiSaldoCutiService.php` — saldo atomik dengan carry-over dan mutasi append-only.
+- ✓ `MutasiSaldoCutiService.php` — saldo atomik dengan carry-over dan mutasi append-only; **+ `sesuaikan()`** untuk penyesuaian manual dengan alasan wajib, kunci baris, pengecekan isolasi cabang, dan mutasi `penyesuaian` append-only.
 
 **Service utama (C2):**
 - ✓ `CutiService.php` — `ajukan(pegawai, jenis, mulai, selesai, alasan, pengganti, sesiPerTanggal, pengaju)`, `setujuiAtasan`, `setujuiFinal`, `tolak` (alasan wajib), `batalkan(pengajuan, pembatal, alasan)` (alasan wajib). Hari dihitung otomatis; saldo dipotong per tahun saat final; benturan cuti+izin; absensi ditimpa via `catatManual`.
@@ -71,8 +71,8 @@
 
 - [x] **P1.1 Form dan aksi:** perbarui `Create/EditPengajuanCuti` dan `Create/EditPengajuanIzin`. Hapus `jumlahHari`; terima tanggal dan sesi, panggil service dalam `handleRecordCreation/Update`, tampilkan exception sebagai notifikasi. Jangan menulis saldo/absensi langsung dari Filament. *(belum diverifikasi manual/test)*
 - [x] **P1.2 Resource:** sesuaikan `PengajuanCutiResource` dan `PengajuanIzinResource` dengan transisi `diajukan` → persetujuan atasan → persetujuan final. Ganti `setujui()`; tambahkan tolak dan batal dengan alasan; validasi otorisasi di service, bukan hanya `visible()`. *(belum diverifikasi manual/test)*
-- [ ] **P1.3 Master:** buat `JenisCutiResource`; `SaldoCutiResource` read-only dengan penyesuaian melalui `MutasiSaldoCutiService` dan alasan wajib; `HariLiburResource` dengan cabang, tanggal, dan nama. Lindungi master dari penghapusan yang merusak histori.
-- [ ] **P1.4 Migrasi dan tes:** jalankan migrasi test; perbarui `CutiIzinTest`, `AbsensiAndalTest`, dan `PanelSdmTest`. Uji hari kerja/libur, setengah hari, lintas tahun, carry-over, benturan, otorisasi, pembatalan/restore absensi, idempotensi persetujuan, atomisitas saldo, dan akses cabang/peran. Uji Livewire untuk setiap action dan panel master.
+- [✓] **P1.3 Master:** `JenisCutiResource` (CRUD, nonaktif sebagai pengganti hapus), `SaldoCutiResource` (read-only + aksi sesuaikan bermutasi lewat `MutasiSaldoCutiService`, alasan wajib, isolasi cabang), `HariLiburResource` (CRUD cabang/tanggal/nama, hapus dilindungi). 7 tes baru di `tests/Feature/SdmMasterTest.php` lolos pada PostgreSQL (`sifa_test`).
+- [ ] **P1.4 Migrasi dan tes:** jalankan migrasi test; perbarui `CutiIzinTest` (stale: `ajukan()` argumen ke-6 `pengganti` berupa string, dan `IzinService::setujui()` yang sudah dihapus) dan `PanelSdmTest` (stale pemakaian `ajukan()`). Uji Livewire untuk setiap action dan panel master. Catat: kegagalan `CutiIzinTest`/`PanelSdmTest` saat ini adalah pra-existing, bukan regresi P1.3.
 - [ ] **P1.5 Penutupan:** hapus pemanggil lama, cek migrasi development tanpa `migrate:fresh`, verifikasi manual, perbarui HANDOVER.
 
 ---
@@ -214,8 +214,7 @@
 
 ## Langkah Berikutnya (aktif)
 
-1. **P1.3:** buat panel Jenis Cuti, Saldo Cuti (read-only + penyesuaian bermutasi), Hari Libur.
-2. **P1.3:** buat panel Jenis Cuti, Saldo Cuti (read-only + penyesuaian bermutasi), Hari Libur.
-3. **P1.4–P1.5:** perbarui tes PostgreSQL untuk regresi/alur bertingkat, jalankan verifikasi migrasi/test yang disetujui, tutup Paket C lalu mulai P2.0.
+1. **P1.3 Selesai:** panel Jenis Cuti, Saldo Cuti, Hari Libur dibuat dan diuji (7 tes `SdmMasterTest` lolos).
+2. **P1.4–P1.5:** perbarui tes PostgreSQL (`CutiIzinTest`, `PanelSdmTest`), jalankan verifikasi migrasi/test yang disetujui, tutup Paket C lalu mulai P2.0.
 
 **Keputusan yang harus diminta sebelum paket terkait:** COA/konsolidasi/PPh21/BPJS (P2/P5), contoh rapor/kurikulum yayasan (P3), penyedia WhatsApp/gateway (P2/P5), rancangan akun PWA orang tua/siswa (P4/P6).

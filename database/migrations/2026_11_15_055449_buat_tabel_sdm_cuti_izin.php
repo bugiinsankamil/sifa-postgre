@@ -63,7 +63,7 @@ return new class extends Migration
             $table->decimal('jumlah_hari', 5, 1);
             $table->decimal('saldo_sebelum', 5, 1);
             $table->decimal('saldo_sesudah', 5, 1);
-            $table->foreignId('pengajuan_cuti_id')->nullable()->constrained('pengajuan_cuti')->nullOnDelete();
+            $table->unsignedBigInteger('pengajuan_cuti_id')->nullable();
             $table->foreignId('dibuat_oleh')->nullable()->constrained('users')->nullOnDelete();
             $table->text('keterangan')->nullable();
             $table->string('kode_unik', 64)->unique();
@@ -100,6 +100,10 @@ return new class extends Migration
             $table->index(['cabang_id', 'status']);
             $table->index(['tanggal_mulai', 'tanggal_selesai']);
         });
+        Schema::table('mutasi_saldo_cuti', function (Blueprint $table) {
+            $table->foreign('pengajuan_cuti_id')->references('id')->on('pengajuan_cuti')->nullOnDelete();
+        });
+
         DB::statement("ALTER TABLE pengajuan_cuti ADD CONSTRAINT pc_status_chk CHECK (status IN ('diajukan','disetujui_atasan','disetujui','ditolak','dibatalkan'))");
         DB::statement('ALTER TABLE pengajuan_cuti ADD CONSTRAINT pc_tanggal_chk CHECK (tanggal_selesai >= tanggal_mulai)');
 
@@ -188,8 +192,8 @@ return new class extends Migration
         Schema::dropIfExists('pengajuan_izin_hari');
         Schema::dropIfExists('pengajuan_izin');
         Schema::dropIfExists('pengajuan_cuti_hari');
-        Schema::dropIfExists('pengajuan_cuti');
         Schema::dropIfExists('mutasi_saldo_cuti');
+        Schema::dropIfExists('pengajuan_cuti');
         Schema::dropIfExists('saldo_cuti');
         Schema::dropIfExists('hari_libur');
         Schema::dropIfExists('jenis_cuti');
