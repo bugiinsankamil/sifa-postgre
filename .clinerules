@@ -45,6 +45,6 @@ Proyek ERP SIT Fathona. Baca HANDOVER.md sebelum bekerja. Pengguna berbahasa Ind
 - Setelah selesai, sebutkan daftar file yang dibuat/diubah maksimal dalam 2 baris.
 
 ## 6. Protokol Handoff & Pencatatan Progres (`PROGRESS.md`)
-- **Perintah "Catat Progres":** Jika user meminta mencatat progres atau sebelum sesi diakhiri, perbarui file `PROGRESS.md` secara singkat (maksimal 50 baris) berisi: daftar file yang sudah selesai, file yang belum tuntas, dan 1–3 langkah konkret berikutnya.
+- **Perintah "Catat Progres":** Jika user meminta mencatat progres atau sebelum sesi diakhiri, perbarui file `PROGRESS.md` berisi: daftar file yang sudah selesai, file yang belum tuntas, dan 1–3 langkah konkret berikutnya.
 - **Perintah "Lanjutkan Progres":** Jika user memulai sesi dengan merujuk `@PROGRESS.md`, langsung baca file tersebut dan eksekusi poin pertama pada bagian **Langkah Berikutnya** tanpa melakukan pencarian global (`list_files` / `search_files`) ke seluruh proyek.
 - **Sinkronisasi otomatis (Opsional):** Setiap kali menyelesaikan 1 sub-tugas besar (misal: selesai membuat Model atau Resource), centang bagian terkait di `PROGRESS.md` menggunakan `replace_in_file`.
