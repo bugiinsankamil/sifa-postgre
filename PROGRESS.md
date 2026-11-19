@@ -24,9 +24,9 @@
 
 ## P1 — Stabilisasi Paket C Cuti/Izin Atomik
 
-## Status: C1 + C2 Selesai — Migrasi, Service Helper, CutiService, IzinService (panel dan tes belum disesuaikan)
+## Status: P1 Selesai — Paket Cuti/Izin Atomik (migrasi, service, panel, tes)
 
-**Status verifikasi:** migrasi belum dijalankan/terverifikasi. Total paket: 14 file dibuat/diubah, 1 dihapus.
+**Status verifikasi:** semua tes lolos pada PostgreSQL (`sifa_test`): `CutiIzinTest` 20 tes, `PanelSdmTest` 13 tes, `SdmMasterTest` 7 tes. Total paket: 14 file dibuat/diubah, 2 dihapus (migrasi `2026_11_17_050220` digabung, `OtorisasiPersetujuan.php` dihapus).
 
 ### Keputusan Bisnis (C0) ✓
 
@@ -65,15 +65,15 @@
 **Service utama (C2):**
 - ✓ `CutiService.php` — `ajukan(pegawai, jenis, mulai, selesai, alasan, pengganti, sesiPerTanggal, pengaju)`, `setujuiAtasan`, `setujuiFinal`, `tolak` (alasan wajib), `batalkan(pengajuan, pembatal, alasan)` (alasan wajib). Hari dihitung otomatis; saldo dipotong per tahun saat final; benturan cuti+izin; absensi ditimpa via `catatManual`.
 - ✓ `IzinService.php` — signature sama, tanpa saldo: `ajukan(pegawai, jenis, mulai, selesai, alasan, sesiPerTanggal, pengaju)`.
-- Catatan: `setujui()` dihapus. `OtorisasiPersetujuan.php` sudah tidak dipakai service (hapus setelah panel dan tes dimigrasi).
+- `setujui()` dihapus; alur sekarang `setujuiAtasan` → `setujuiFinal`. `OtorisasiPersetujuan.php` telah dihapus (diganti `OtorisasiPengajuan`).
 
 ### Pekerjaan tersisa
 
-- [x] **P1.1 Form dan aksi:** perbarui `Create/EditPengajuanCuti` dan `Create/EditPengajuanIzin`. Hapus `jumlahHari`; terima tanggal dan sesi, panggil service dalam `handleRecordCreation/Update`, tampilkan exception sebagai notifikasi. Jangan menulis saldo/absensi langsung dari Filament. *(belum diverifikasi manual/test)*
-- [x] **P1.2 Resource:** sesuaikan `PengajuanCutiResource` dan `PengajuanIzinResource` dengan transisi `diajukan` → persetujuan atasan → persetujuan final. Ganti `setujui()`; tambahkan tolak dan batal dengan alasan; validasi otorisasi di service, bukan hanya `visible()`. *(belum diverifikasi manual/test)*
+- [✓] **P1.1 Form dan aksi:** perbarui `Create/EditPengajuanCuti` dan `Create/EditPengajuanIzin`. Hapus `jumlahHari`; terima tanggal dan sesi, panggil service dalam `handleRecordCreation/Update`, tampilkan exception sebagai notifikasi. Jangan menulis saldo/absensi langsung dari Filament. *(teruji via tes panel)*
+- [✓] **P1.2 Resource:** sesuaikan `PengajuanCutiResource` dan `PengajuanIzinResource` dengan transisi `diajukan` → persetujuan atasan → persetujuan final. Ganti `setujui()`; tambahkan tolak dan batal dengan alasan; validasi otorisasi di service, bukan hanya `visible()`. *(teruji via tes panel)*
 - [✓] **P1.3 Master:** `JenisCutiResource` (CRUD, nonaktif sebagai pengganti hapus), `SaldoCutiResource` (read-only + aksi sesuaikan bermutasi lewat `MutasiSaldoCutiService`, alasan wajib, isolasi cabang), `HariLiburResource` (CRUD cabang/tanggal/nama, hapus dilindungi). 7 tes baru di `tests/Feature/SdmMasterTest.php` lolos pada PostgreSQL (`sifa_test`).
-- [ ] **P1.4 Migrasi dan tes:** jalankan migrasi test; perbarui `CutiIzinTest` (stale: `ajukan()` argumen ke-6 `pengganti` berupa string, dan `IzinService::setujui()` yang sudah dihapus) dan `PanelSdmTest` (stale pemakaian `ajukan()`). Uji Livewire untuk setiap action dan panel master. Catat: kegagalan `CutiIzinTest`/`PanelSdmTest` saat ini adalah pra-existing, bukan regresi P1.3.
-- [ ] **P1.5 Penutupan:** hapus pemanggil lama, cek migrasi development tanpa `migrate:fresh`, verifikasi manual, perbarui HANDOVER.
+- [✓] **P1.4 Migrasi dan tes:** migrasi test dijalankan; `CutiIzinTest` (20 tes), `PanelSdmTest` (13 tes), dan `SdmMasterTest` (7 tes) lolos pada PostgreSQL (`sifa_test`); `setujui()` diganti alur `setujuiAtasan`/`setujuiFinal`, penolakan dan pembatalan dengan alasan wajib, dan kolom status panel diperbaiki agar dapat dirender.
+- [✓] **P1.5 Penutupan:** pemanggil lama (`OtorisasiPersetujuan.php`) dihapus; cek migrasi development tanpa `migrate:fresh` pada salinan bukan database development; verifikasi manual; perbarui HANDOVER. Paket C ditutup.
 
 ---
 
@@ -214,7 +214,6 @@
 
 ## Langkah Berikutnya (aktif)
 
-1. **P1.4 Selesai:** `CutiIzinTest` (20 tes), `PanelSdmTest` (13 tes), dan `SdmMasterTest` (7 tes) lolos pada PostgreSQL (`sifa_test`); `setujui()` diganti alur `setujuiAtasan`/`setujuiFinal`, penolakan dan pembatalan dengan alasan wajib, dan kolom status panel diperbaiki agar dapat dirender.
-2. **P1.5 tersisa:** hapus pemanggil lama, cek migrasi development tanpa `migrate:fresh` pada salinan bukan database development, verifikasi manual, perbarui HANDOVER; lalu tutup Paket C dan mulai P2.0.
+1. **Paket C ditutup:** P1.1–P1.5 semua selesai dan diverifikasi pada PostgreSQL (`sifa_test`). `OtorisasiPersetujuan.php` dihapus. Mulai **P2.0 Keputusan dan fondasi (bloker)** — sepakati COA standar, pemetaan pendapatan/kas/piutang/kelebihan bayar, entitas penanggung biaya, biaya bersama, PPh21/BPJS; catat di HANDOVER.
 
 **Keputusan yang harus diminta sebelum paket terkait:** COA/konsolidasi/PPh21/BPJS (P2/P5), contoh rapor/kurikulum yayasan (P3), penyedia WhatsApp/gateway (P2/P5), rancangan akun PWA orang tua/siswa (P4/P6).
