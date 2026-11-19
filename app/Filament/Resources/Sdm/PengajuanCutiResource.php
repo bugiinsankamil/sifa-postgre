@@ -76,7 +76,7 @@ class PengajuanCutiResource extends Resource
                 TextColumn::make('tanggal_mulai')->date('d/m/Y'),
                 TextColumn::make('tanggal_selesai')->date('d/m/Y'),
                 TextColumn::make('jumlah_hari')->suffix(' hari'),
-                TextColumn::make('status')->badge()->color(fn (string $s) => match ($s) {
+                TextColumn::make('status')->badge()->color(fn (string $state): string => match ($state) {
                     'disetujui' => 'success', 'ditolak' => 'danger',
                     'dibatalkan' => 'gray', default => 'warning',
                 }),

@@ -214,7 +214,7 @@
 
 ## Langkah Berikutnya (aktif)
 
-1. **P1.3 Selesai:** panel Jenis Cuti, Saldo Cuti, Hari Libur dibuat dan diuji (7 tes `SdmMasterTest` lolos).
-2. **P1.4–P1.5:** perbarui tes PostgreSQL (`CutiIzinTest`, `PanelSdmTest`), jalankan verifikasi migrasi/test yang disetujui, tutup Paket C lalu mulai P2.0.
+1. **P1.4 Selesai:** `CutiIzinTest` (20 tes), `PanelSdmTest` (13 tes), dan `SdmMasterTest` (7 tes) lolos pada PostgreSQL (`sifa_test`); `setujui()` diganti alur `setujuiAtasan`/`setujuiFinal`, penolakan dan pembatalan dengan alasan wajib, dan kolom status panel diperbaiki agar dapat dirender.
+2. **P1.5 tersisa:** hapus pemanggil lama, cek migrasi development tanpa `migrate:fresh` pada salinan bukan database development, verifikasi manual, perbarui HANDOVER; lalu tutup Paket C dan mulai P2.0.
 
 **Keputusan yang harus diminta sebelum paket terkait:** COA/konsolidasi/PPh21/BPJS (P2/P5), contoh rapor/kurikulum yayasan (P3), penyedia WhatsApp/gateway (P2/P5), rancangan akun PWA orang tua/siswa (P4/P6).

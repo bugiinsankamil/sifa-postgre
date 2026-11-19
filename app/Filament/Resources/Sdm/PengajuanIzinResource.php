@@ -71,12 +71,12 @@ class PengajuanIzinResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('pegawai.orang.nama_lengkap')->label('Pegawai')->searchable()->sortable(),
-                TextColumn::make('jenis')->badge()->color(fn (string $s) => match ($s) {
+                TextColumn::make('jenis')->badge()->color(fn (string $state): string => match ($state) {
                     'izin' => 'info', 'sakit' => 'warning', 'dinas_luar' => 'primary',
                 }),
                 TextColumn::make('tanggal_mulai')->date('d/m/Y'),
                 TextColumn::make('tanggal_selesai')->date('d/m/Y'),
-                TextColumn::make('status')->badge()->color(fn (string $s) => match ($s) {
+                TextColumn::make('status')->badge()->color(fn (string $state): string => match ($state) {
                     'disetujui' => 'success', 'ditolak' => 'danger',
                     'dibatalkan' => 'gray', default => 'warning',
                 }),

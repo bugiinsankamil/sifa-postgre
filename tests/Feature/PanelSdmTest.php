@@ -226,7 +226,7 @@ class PanelSdmTest extends TestCase
         $jenis = \App\Models\JenisCuti::create(['kode' => 'CT', 'nama' => 'Cuti Tahunan', 'kuota_hari_tahunan' => 12]);
 
         $pengajuan = app(\App\Services\Sdm\CutiService::class)->ajukan(
-            $pegawai, $jenis, today()->toDateString(), today()->addDays(2)->toDateString(), 3, 'Liburan'
+            $pegawai, $jenis, today()->toDateString(), today()->addDays(2)->toDateString(), 'Liburan'
         );
 
         $this->assertFalse(\App\Filament\Resources\Sdm\PengajuanCutiResource::canApprovePengajuan());
@@ -264,7 +264,7 @@ class PanelSdmTest extends TestCase
         $jenis = \App\Models\JenisCuti::create(['kode' => 'CT', 'nama' => 'Cuti Tahunan', 'kuota_hari_tahunan' => 12]);
 
         $pengajuan = app(\App\Services\Sdm\CutiService::class)->ajukan(
-            $pegawai, $jenis, today()->toDateString(), today()->addDays(2)->toDateString(), 3, 'Liburan'
+            $pegawai, $jenis, today()->toDateString(), today()->addDays(2)->toDateString(), 'Liburan'
         );
 
         $this->assertTrue(\App\Filament\Resources\Sdm\PengajuanCutiResource::canApprovePengajuan());
@@ -292,7 +292,7 @@ class PanelSdmTest extends TestCase
         $jenis = \App\Models\JenisCuti::create(['kode' => 'CT', 'nama' => 'Cuti Tahunan', 'kuota_hari_tahunan' => 12]);
 
         $pengajuan = app(\App\Services\Sdm\CutiService::class)->ajukan(
-            $pegawai, $jenis, today()->toDateString(), today()->addDays(2)->toDateString(), 3, 'Liburan'
+            $pegawai, $jenis, today()->toDateString(), today()->addDays(2)->toDateString(), 'Liburan'
         );
 
         \Livewire\Livewire::test(\App\Filament\Resources\Sdm\Pages\ListPengajuanCuti::class)
@@ -320,7 +320,7 @@ class PanelSdmTest extends TestCase
         $jenis = \App\Models\JenisCuti::create(['kode' => 'CT', 'nama' => 'Cuti Tahunan', 'kuota_hari_tahunan' => 12]);
 
         $pengajuan = app(\App\Services\Sdm\CutiService::class)->ajukan(
-            $pegawai, $jenis, today()->toDateString(), today()->addDays(2)->toDateString(), 3, 'Liburan'
+            $pegawai, $jenis, today()->toDateString(), today()->addDays(2)->toDateString(), 'Liburan'
         );
 
         app(\App\Services\Sdm\CutiService::class)->tolak($pengajuan, $user, 'Banyak tugas');

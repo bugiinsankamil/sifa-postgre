@@ -206,7 +206,7 @@ class AbsensiAndalTest extends TestCase
     {
         $jenis = \App\Models\JenisCuti::create(['kode' => 'CT', 'nama' => 'Cuti', 'kuota_hari_tahunan' => 12]);
         $cuti = app(\App\Services\Sdm\CutiService::class)->ajukan(
-            $this->pegawai, $jenis, today()->toDateString(), today()->toDateString(), 1
+            $this->pegawai, $jenis, today()->toDateString(), today()->toDateString(), 'Cuti'
         );
         $penyetuju = \App\Models\User::create([
             'orang_id' => Orang::create(['nama_lengkap' => 'Kepala', 'jenis_kelamin' => 'L'])->id,
@@ -214,7 +214,7 @@ class AbsensiAndalTest extends TestCase
         ]);
         $this->seed(\Database\Seeders\PeranSeeder::class);
         app(\App\Services\PenugasanPeran::class)->berikan($penyetuju, \App\Enums\Peran::KepalaCabang, $this->cabang->id);
-        app(\App\Services\Sdm\CutiService::class)->setujui($cuti, $penyetuju);
+        app(\App\Services\Sdm\CutiService::class)->setujuiFinal($cuti, $penyetuju);
 
         $this->expectException(SdmException::class);
         $this->expectExceptionMessage('Batalkan pengajuannya');
