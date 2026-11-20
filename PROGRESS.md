@@ -82,16 +82,24 @@
 **Status: belum dikerjakan.** Fondasi: entitas, akun, periode, jurnal, snapshot, pemetaan akun. Target pertama: tagihan daftar ulang dan pembayaran tunai/transfer yang teralokasi serta terjurnal.
 
 ### P2.0 Keputusan dan fondasi (bloker)
-- [ ] Sepakati COA standar, pemetaan pendapatan/kas/piutang/kelebihan bayar, entitas penanggung biaya, biaya bersama, serta PPh21/BPJS. Catat di HANDOVER.
-- [ ] Audit pemakaian `float` pada uang; gunakan decimal(15,2) dan strategi string/BCMath serta pembulatan yang konsisten.
-- [ ] Buat resolver entitas dari sekolah/cabang/yayasan; pasang FK tertunda serta check debit/kredit dan kecocokan entitas-periode.
-- [ ] Definisikan `PembayaranBerhasil`, `PenerimaanBarangDicatat`, `PeriodeGajiDisetujui` dengan event after-commit dan listener idempoten. Modul tidak saling query tabel.
+
+**Status: selesai (keputusan diambil).** COA standar dan pemetaan akun default **tidak di-seed**; kunci pemetaan diisi manual via panel Akun (pilihan pengguna). Usulan kunci: `rekening_kas_default`, `rekening_bank_default`, `piutang_siswa`, `kelebihan_bayar_siswa`, `pendapatan_spp`, `pendapatan_daftar_ulang`, `beban_operasional`, `pph21`, `bpjs`. Entitas penanggung biaya: SPP/sekolah → entitas sekolah; biaya bersama cabang → entitas cabang; pusat → yayasan (lewat transaksi_antar_entitas nanti). PPh21/BPJS ditangguhkan ke kewajiban saat gaji (detail P5.3).
+
+- [x] Sepakati COA standar, pematang, entitas penanggung biaya, biaya bersama, PPh21/BPJS. Catat di HANDOVER.
+- [x] Audit pemakaian `float` pada uang; gunakan decimal(15,2) dan strategi string/BCMath serta pembulatan yang konsisten.
+- [x] Buat resolver entitas dari sekolah/cabang/yayasan; pasang FK tertunda serta check debit/kredit dan kecocokan entitas-periode.
+- [x] Definisikan `PembayaranBerhasil`, `PenerimaanBarangDicatat`, `PeriodeGajiDisetujui` dengan event after-commit dan listener idempoten. Modul tidak saling query tabel.
 
 ### P2.1 Kas dan bank
-- [ ] Migrasikan `rekening_kas`, `transaksi_kas`, `rekonsiliasi_bank`; index FK/entitas/tanggal; aturan transfer, akun lawan, dan referensi jurnal.
-- [ ] `KasService`: masuk/keluar/transfer, saldo, jurnal atomik, larangan periode tertutup. `RekonsiliasiBankService`: mulai, cocokkan, selesaikan tanpa mengubah histori.
-- [ ] Resource rekening, transaksi, rekonsiliasi; peran melalui `config/keuangan.php`.
-- [ ] Tes transaksi, periode tertutup, jurnal seimbang, isolasi entitas/cabang, idempotensi, dan rollback jurnal gagal.
+
+**Status: selesai.** Semua tes lolos pada PostgreSQL (`sifa_test`): `KasBankTest` 8 tes. Total suite: 235 tes, 666 asersi.
+
+- [x] Migrasi `rekening_kas`, `transaksi_kas`, `rekonsiliasi_bank`; index FK/entitas/tanggal; aturan transfer, akun lawan, dan referensi jurnal. Constraint: tipe kas/bank, status draft/posted/batal, transfer tidak boleh rekening sama.
+- [x] `KasService`: masuk/keluar/transfer, saldo, jurnal atomik, larangan periode tertutup. `RekonsiliasiBankService`: mulai, cocokkan, selesaikan tanpa mengubah histori.
+- [x] Resource rekening, transaksi, rekonsiliasi; peran melalui `config/keuangan.php`.
+- [x] Tes transaksi, periode tertutup, jurnal seimbang, isolasi entitas/cabang, idempotensi, dan rollback jurnal gagal.
+
+### P2.2 Tagihan, diskon, pembayaran, dan gateway
 
 ### P2.2 Tagihan, diskon, pembayaran, dan gateway
 - [ ] Migrasikan `jenis_tagihan`, `tarif_tagihan`, `diskon_beasiswa`, `siswa_diskon`, `tagihan`, `pembayaran`, `pembayaran_alokasi`, `virtual_account`, `pembayaran_gateway_log`, `pengembalian_dana`. Gunakan check XOR siswa/pendaftar dan unique eksternal.
@@ -214,6 +222,6 @@
 
 ## Langkah Berikutnya (aktif)
 
-1. **Paket C ditutup:** P1.1–P1.5 semua selesai dan diverifikasi pada PostgreSQL (`sifa_test`). `OtorisasiPersetujuan.php` dihapus. Mulai **P2.0 Keputusan dan fondasi (bloker)** — sepakati COA standar, pemetaan pendapatan/kas/piutang/kelebihan bayar, entitas penanggung biaya, biaya bersama, PPh21/BPJS; catat di HANDOVER.
+1. **P2.0 dan P2.1 selesai:** Kas/bank, transaksi, rekonsiliasi bank teruji pada PostgreSQL (`sifa_test`). `KasBankTest` 8 tes lolos; total suite 235 tes. Mulai **P2.2 Tagihan, diskon, pembayaran, dan gateway** — migrasi `jenis_tagihan`, `tarif_tagihan`, `diskon_beasiswa`, `siswa_diskon`, `tagihan`, `pembayaran`, `pembayaran_alokasi`, `virtual_account`, `pembayaran_gateway_log`, `pengembalian_dana`; `TagihanService` dan `PembayaranService`; panel tarif/diskon, tagihan, pembayaran/alokasi/refund. Hubungkan konversi SPMB ke tagihan daftar ulang.
 
-**Keputusan yang harus diminta sebelum paket terkait:** COA/konsolidasi/PPh21/BPJS (P2/P5), contoh rapor/kurikulum yayasan (P3), penyedia WhatsApp/gateway (P2/P5), rancangan akun PWA orang tua/siswa (P4/P6).
+**Keputusan yang harus diminta sebelum paket terkait:** penyedia WhatsApp/gateway (P2/P5), contoh rapor/kurikulum yayasan (P3), rancangan akun PWA orang tua/siswa (P4/P6).
