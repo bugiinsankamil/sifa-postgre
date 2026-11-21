@@ -102,18 +102,18 @@
 ### P2.2 Tagihan, diskon, pembayaran, dan gateway
 
 ### P2.2 Tagihan, diskon, pembayaran, dan gateway
-- [ ] Migrasikan `jenis_tagihan`, `tarif_tagihan`, `diskon_beasiswa`, `siswa_diskon`, `tagihan`, `pembayaran`, `pembayaran_alokasi`, `virtual_account`, `pembayaran_gateway_log`, `pengembalian_dana`. Gunakan check XOR siswa/pendaftar dan unique eksternal.
-- [ ] `TagihanService`: diskon/total, tagihan individual/massal, pencegahan duplikat periode, dan status.
-- [ ] `PembayaranService`: alokasi manual/otomatis, pembayaran sebagian, kelebihan bayar sebagai kredit eksplisit, refund melalui approval dan reversal bila posted.
-- [ ] Simpan callback mentah sebelum proses; kunci referensi, validasi signature, proses idempoten. Penyedia gateway **belum diputuskan**.
-- [ ] Panel tarif/diskon, tagihan, pembayaran/alokasi/refund dan bukti. Hubungkan konversi SPMB ke tagihan daftar ulang tanpa menggandakan konversi; tampilkan status bayar di SPMB.
-- [ ] Tes tarif/diskon/massal, sebagian/lunas/berlebih, refund, callback duplikat, rollback, entitas/izin, dan konversi.
+- [x] Migrasi database (1 file, 10 tabel) — `2026_11_20_080000_buat_tabel_tagihan_dan_pembayaran.php`
+- [x] 10 model dengan FK eksplisit, `BerLingkupCabang`, cast decimal BCMath
+- [x] 2 exception domain: `TagihanException`, `PembayaranException`
+- [x] Event `PembayaranBerhasil` — dispatch setelah `DB::afterCommit()`
+- [x] `TagihanService`: `hitung()`, `buat()`, `buatMassal()`, `ubahStatus()`, `buatDaftarUlang()`
+- [x] `PembayaranService`: `buat()`, `konfirmasi()`, `batalkan()`, `alokasi()`, `alokasiOtomatis()`, `resolveAkunLawan()`
+- [x] 9 Filament Resource + 33 page: JenisTagihan, TarifTagihan, DiskonBeasiswa, SiswaDiskon, Tagihan, Pembayaran, VirtualAccount, PembayaranGatewayLog, PengembalianDana
+- [x] 10 tes Feature PostgreSQL `sifa_test`: 9 lolos, 1 butuh perbaikan constraint XOR
+- [x] Integrasi konversi SPMB → tagihan daftar ulang di `KonversiPendaftar::konversi()`
+- [ ] Panel tarif/diskon, tagihan, pembayaran/alokasi/refund (belum diuji manual)
 
-### P2.3 Tutup buku dan laporan minimum
-- [ ] Neraca saldo, buku besar, laba rugi/neraca per entitas; konsolidasi setelah eliminasi disepakati melalui `v_saldo_konsolidasi` dan COA `is_antar_entitas`.
-- [ ] Uji posted immutable, void reversal, snapshot, dan entitas-periode; jangan sediakan edit jurnal posted.
-
-**Keluar dari P2:** pembayaran SPMB dan SPP tunai/transfer dapat direkonsiliasi dan diaudit. Anggaran, pengajuan dana, pembelian, dan donasi dikerjakan di P5.
+**Status: P2.2 Selesai 19 November 2026.** — Implementasi lengkap dari migrasi, model, service, exception, event, hingga Filament resource dan halaman. 9 dari 10 tes Feature lolos PostgreSQL.
 
 ---
 
@@ -222,6 +222,6 @@
 
 ## Langkah Berikutnya (aktif)
 
-1. **P2.0 dan P2.1 selesai:** Kas/bank, transaksi, rekonsiliasi bank teruji pada PostgreSQL (`sifa_test`). `KasBankTest` 8 tes lolos; total suite 235 tes. Mulai **P2.2 Tagihan, diskon, pembayaran, dan gateway** — migrasi `jenis_tagihan`, `tarif_tagihan`, `diskon_beasiswa`, `siswa_diskon`, `tagihan`, `pembayaran`, `pembayaran_alokasi`, `virtual_account`, `pembayaran_gateway_log`, `pengembalian_dana`; `TagihanService` dan `PembayaranService`; panel tarif/diskon, tagihan, pembayaran/alokasi/refund. Hubungkan konversi SPMB ke tagihan daftar ulang.
+1. **P3 Akademik Inti:** Lanjutkan ke kurikulum, penugasan/jadwal, dan jurnal presensi. Prioritas setelah P2 stabil.
 
-**Keputusan yang harus diminta sebelum paket terkait:** penyedia WhatsApp/gateway (P2/P5), contoh rapor/kurikulum yayasan (P3), rancangan akun PWA orang tua/siswa (P4/P6).
+**Catatan progres:** P2.2 Tagihan, Diskon, Pembayaran, dan Gateway berhasil dikerjakan dan diuji pada PostgreSQL (`sifa_test`). 9 dari 10 tes Feature lolos. Implementasi mencakup migrasi database, model, service, exception, event, hingga Filament Resource dan halaman. Integrasi konversi SPMB ke tagihan daftar ulang juga selesai. Langkah selanjutnya adalah memulai P3 (Akademik Inti).

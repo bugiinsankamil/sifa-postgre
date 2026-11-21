@@ -13,6 +13,9 @@ use App\Models\SpmbKontak;
 use App\Models\SpmbPendaftar;
 use App\Models\SpmbPendaftarWali;
 use App\Models\SpmbPeriode;
+use App\Models\EntitasAkuntansi;
+use App\Models\TahunAjaran;
+use App\Services\Keuangan\TagihanService;
 use App\Services\PenomoranDokumen;
 use App\Support\Telepon;
 use Illuminate\Support\Carbon;
@@ -81,6 +84,18 @@ class KonversiPendaftar
             }
 
             $p->forceFill(['siswa_id' => $siswa->id, 'status' => 'menjadi_siswa'])->save();
+
+            // Tagihan daftar ulang (idemen; tidak gagalkan konversi bila jenis/tarif/entitas belum dikonfigurasi)
+            $entitas = EntitasAkuntansi::where('cabang_id', $p->cabang_id)->first();
+            if ($entitas !== null) {
+                app(TagihanService::class)->buatDaftarUlang(
+                    $siswa,
+                    $entitas,
+                    $p->cabang,
+                    $p->sekolah,
+                    TahunAjaran::find($periode->tahun_ajaran_id)
+                );
+            }
 
             if ($p->kontak_id !== null) {
                 SpmbKontak::query()->withoutGlobalScopes()->whereKey($p->kontak_id)->update(['status' => 'mendaftar']);
