@@ -3,12 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Concerns\BerLingkupCabang;
 
 class Jenjang extends BaseModel
 {
-    use BerLingkupCabang;
-
     protected $guarded = [];
 
     protected $casts = [

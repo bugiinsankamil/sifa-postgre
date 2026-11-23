@@ -123,9 +123,10 @@
 **Status: belum dikerjakan.** Urutan: kurikulum → penugasan/jadwal → presensi/jurnal → nilai → kenaikan → rapor/TK.
 
 ### P3.1 Kurikulum dan struktur
-- [ ] Migrasikan `kurikulum`, `kurikulum_sekolah`, `mata_pelajaran`, `struktur_kurikulum`, `kompetensi_guru`, `tujuan_pembelajaran`.
-- [ ] Service penerapan per sekolah/tahun/tingkat dan salin struktur; resource master dengan validasi jenjang-tingkat.
-- [ ] Tes unique, penerapan, salin, akses cabang, dan keamanan histori.
+- [x] **Migrasi dan model selesai** — sudah dibuat migrasi `2026_11_20_080100_buat_tabel_kurikulum_dan_mata_pelajaran`, model `BaseModel` sudah diperbaiki (angkat `BerLingkupCabang` dari model tanpa `cabang_id`), dan migration korektif `2026_11_24_000000_perbaiki_skema_kurikulum.php` menambah `cabang_id` dan constraintunik parsial untuk `kurikulum_sekolah` dan `kompetensi_guru`.
+- [x] **Service dan resource dibuat** — `app/Services/Akademik/KurikulumService.php` dibuat dengan metode `terapkan()`, `nonaktifkan()`, `salinStruktur()`, `validasiJenjang()`; 6 Filament resource dibuat: `KurikulumResource`, `MataPelajaranResource`, `StrukturKurikulumResource`, `KurikulumSekolahResource`, `KompetensiGuruResource`, `TujuanPembelajaranResource` beserta 18 halaman page.
+- [ ] **Tes P3.1 belum ditulis** — perlu dibuat di `tests/Feature/AkademikKurikulumTest.php` untuk mengecover keunikan, isolasi cabang, validasi jenjang, penerapan idemen, penyalinan struktur, dan perlindungan histori. File tes saat ini mengalami error parse di baris 93 (`unexpected token "public"`).
+- [ ] **Verifikasi manual** — migrasi naik/turun diuji di PostgreSQL (`sifa_test`), resource panel dapat dibuka, dan validasi business logic (penerapan kurikulum per sekolah/tahun/tingkat, penolakan kurikulum default duplikat, dll.) harus diuji.
 
 ### P3.2 Penugasan mengajar dan jadwal
 - [ ] Migrasikan `penugasan_mengajar`, `jam_pelajaran`, `jadwal_pelajaran`; pasang FK `ruang_id` ke `ruang`.
@@ -222,7 +223,6 @@
 
 ## Langkah Berikutnya (aktif)
 
-1. **P3 Akademik Inti - P3.1 Kurikulum dan Struktur:** ✅ Migrasi dan model selesai (6 tabel: kurikulum, mata_pelajaran, struktur_kurikulum, kurikulum_sekolah, kompetensi_guru, tujuan_pembelajaran + Tingkat dan Jenjang). Tes P3.1 belum ditulis — perlu ditambahkan untuk keunikan, isolasi cabang, dan perlindungan histori. Service dan resource belum dibuat.
+1. **P3 Akademik Inti - P3.1 Kurikulum dan Struktur:** ✅ Migrasi dan model selesai (migrasi `2026_11_20_080100`, model `BaseModel` sudah diperbaiki, migration korektif `2026_11_24_000000_perbaiki_skema_kurikulum.php`). Service `KurikulumService` dan 6 Filament resource sudah dibuat. ⬇ **Selanjutnya: buat tes `AkademikKurikulumTest.php` dan verifikasi manual di PostgreSQL (`sifa_test`) — tutup paket ini setelah migrasi naik/turun lulus, panel dapat dibuka, dan logic business (penerapan kurikulum per sekolah/tahun/tingkat, penolakan duplikat, validasi jenjang) terverifikasi.**_
 2. **P0 — Database development (`sifa_postgre`):** `migrate:status` menunjukkan 17 migrasi Ran dan 21 Pending. Jangan jalankan `migrate:fresh`. Perlu verifikasi manual skema dan data sebelum migrasi lanjutan.
-
-**Catatan progres:** Seluruh tes suite lolos: 245 tes, 693 assertion, 0 gagal, 0 error pada PostgreSQL (`sifa_test`). Perbaikan yang telah dilakukan: (1) ganti 14 navigasi ikon `heroicon-o-*` yang tidak tersedia menjadi yang tersedia di `TagihanResource` dan 13 resource lain, (2) perbaiki `test_rekening_bukan_miliki_entitas_ditolak` agar menggunakan entitas yang benar-benar berbeda (bukan hanya beda cabang dalam entitas yang sama).
+3. **Bilamana tes `AkademikKurikulumTest.php` sudah dibangun tanpa error:** jalankan `php artisan test` untuk memastikan suite PostgreSQL tetap lulus sebelum menutup P3.1.

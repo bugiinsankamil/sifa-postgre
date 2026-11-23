@@ -4,12 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Concerns\BerLingkupCabang;
-
 class KompetensiGuru extends BaseModel
 {
-    use BerLingkupCabang;
-
     protected $guarded = [];
 
     protected function casts(): array

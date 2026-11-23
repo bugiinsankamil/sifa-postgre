@@ -5,12 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use App\Models\Concerns\BerLingkupCabang;
-
 class StrukturKurikulum extends BaseModel
 {
-    use BerLingkupCabang;
-
     protected $guarded = [];
 
     protected function casts(): array

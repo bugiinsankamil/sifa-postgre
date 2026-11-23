@@ -4,12 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use App\Models\Concerns\BerLingkupCabang;
-
 class Kurikulum extends BaseModel
 {
-    use BerLingkupCabang;
-
     protected $guarded = [];
 
     protected $casts = [
