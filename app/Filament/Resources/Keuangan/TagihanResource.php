@@ -30,7 +30,7 @@ class TagihanResource extends Resource
     use AksesKeuangan;
 
     protected static ?string $model = Tagihan::class;
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-receipt';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-receipt-percent';
     protected static string|UnitEnum|null $navigationGroup = 'Keuangan';
     protected static ?int $navigationSort = 7;
     protected static ?string $navigationLabel = 'Tagihan';

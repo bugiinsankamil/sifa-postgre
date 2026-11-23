@@ -222,6 +222,7 @@
 
 ## Langkah Berikutnya (aktif)
 
-1. **P3 Akademik Inti:** Lanjutkan ke kurikulum, penugasan/jadwal, dan jurnal presensi. Prioritas setelah P2 stabil.
+1. **P3 Akademik Inti - P3.1 Kurikulum dan Struktur:** ✅ Migrasi dan model selesai (6 tabel: kurikulum, mata_pelajaran, struktur_kurikulum, kurikulum_sekolah, kompetensi_guru, tujuan_pembelajaran + Tingkat dan Jenjang). Tes P3.1 belum ditulis — perlu ditambahkan untuk keunikan, isolasi cabang, dan perlindungan histori. Service dan resource belum dibuat.
+2. **P0 — Database development (`sifa_postgre`):** `migrate:status` menunjukkan 17 migrasi Ran dan 21 Pending. Jangan jalankan `migrate:fresh`. Perlu verifikasi manual skema dan data sebelum migrasi lanjutan.
 
-**Catatan progres:** P2.2 Tagihan, Diskon, Pembayaran, dan Gateway berhasil dikerjakan dan diuji pada PostgreSQL (`sifa_test`). 9 dari 10 tes Feature lolos. Implementasi mencakup migrasi database, model, service, exception, event, hingga Filament Resource dan halaman. Integrasi konversi SPMB ke tagihan daftar ulang juga selesai. Langkah selanjutnya adalah memulai P3 (Akademik Inti).
+**Catatan progres:** Seluruh tes suite lolos: 245 tes, 693 assertion, 0 gagal, 0 error pada PostgreSQL (`sifa_test`). Perbaikan yang telah dilakukan: (1) ganti 14 navigasi ikon `heroicon-o-*` yang tidak tersedia menjadi yang tersedia di `TagihanResource` dan 13 resource lain, (2) perbaiki `test_rekening_bukan_miliki_entitas_ditolak` agar menggunakan entitas yang benar-benar berbeda (bukan hanya beda cabang dalam entitas yang sama).

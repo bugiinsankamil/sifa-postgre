@@ -271,13 +271,26 @@ class TagihanPembayaranTest extends TestCase
     public function test_rekening_bukan_miliki_entitas_ditolak(): void
     {
         $this->siapkanPiutang();
-        $kasB = $this->akun($this->entitas, '1-102', 'aset', 'debit'); // gunakan kode berbeda
-        $cabangB = \App\Models\Cabang::query()->insertGetId(['kode' => 'FTN-02', 'nama' => 'Cabang B', 'created_at' => now(), 'updated_at' => now()]);
-        $rekeningB = $this->rekening($this->entitas, $cabangB, 'Kas B', 'kas', $kasB->id);
+
+        // Buat cabang dan entitas yang benar-benar berbeda
+        $cabangB = \Illuminate\Support\Facades\DB::table('cabang')->insertGetId([
+            'kode' => 'FTN-02', 'nama' => 'Cabang B',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $entitasB = \Illuminate\Support\Facades\DB::table('entitas_akuntansi')->insertGetId([
+            'cabang_id' => $cabangB,
+            'tipe' => 'cabang',
+            'kode' => 'ENT-B', 'nama' => 'Entitas B',
+            'is_aktif' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $kasB = $this->akun($entitasB, '1-102', 'aset', 'debit');
+        $rekeningB = $this->rekening($entitasB, $cabangB, 'Kas B', 'kas', $kasB->id);
 
         $s = $this->siswa();
 
-        $bayar = $this->pembayaran(['rekening_id' => $rekeningB->id, 'siswa_id' => $s->id]); // tambahkan siswa_id
+        $bayar = $this->pembayaran(['rekening_id' => $rekeningB->id, 'siswa_id' => $s->id]);
 
         $this->expectException(\RuntimeException::class);
         app(\App\Services\Keuangan\PembayaranService::class)->konfirmasi($bayar, $this->pengguna('kasir', Peran::Admin));

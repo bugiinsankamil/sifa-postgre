@@ -19,7 +19,7 @@ class PembayaranGatewayLogResource extends Resource
     use AksesKeuangan;
 
     protected static ?string $model = PembayaranGatewayLog::class;
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-bug';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-bug-ant';
     protected static string|UnitEnum|null $navigationGroup = 'Keuangan';
     protected static ?int $navigationSort = 10;
     protected static ?string $navigationLabel = 'Log Gateway';
