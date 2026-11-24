@@ -244,4 +244,13 @@
 
 **Catatan:** `php artisan migrate:refresh --seed` gagal karena FK constraint di migration `2026_11_19_110645` (down() method urutan drop tabel salah) — bukan karena P3.2. Migrasi baru berhasil ditambahkan via `php artisan migrate`.
 
-**Berikutnya: P3.3 Jurnal, presensi, dan izin siswa** — migrasi `jurnal_mengajar`, `presensi_siswa`, `izin_siswa` dengan support harian TK/SD dan per jam SMP.
+**Berikutnya: P3.3 Jurnal, presensi, dan izin siswa** — migrasi `jurnal_mengajar`, `presensi_siswa`, `izin_siswa` dengan support harian TK/SD dan per jam SMP. **Kode dan tes sudah ditulis, menunggu verifikasi `php artisan test` pada PostgreSQL (`sifa_test`) sebelum pakai ditutup.**
+
+**File P3.3 yang dibuat:**
+- Migrasi: `database/migrations/2026_11_29_000000_buat_tabel_jurnal_presensi_izin_siswa.php` (3 tabel, partial unique index PostgreSQL untuk bedakan harian vs per-jam, FK eksplisit + check constraint tanggal)
+- Models: `JurnalMengajar`, `PresensiSiswa`, `IzinSiswa` (BaseModel + BerLingkupCabang + FK eksplisit), `Semester` (model yang hilang, dirujuk P3.2)
+- Exceptions: `JurnalMengajarException`, `PresensiSiswaException`, `IzinSiswaException`
+- Services: `JurnalMengajarService` (buat/perbarui/tandai kosong, idemen), `PresensiSiswaService` (catat massal idemen, koreksi, rekap, batas wali kelas/guru utama), `IzinSiswaService` (ajukan/setujui/tolak/batal, alasan wajib, validasi rentang)
+- Filament Resources + Pages (9 file): `JurnalMengajarResource`, `PresensiSiswaResource`, `IzinSiswaResource` (group Akademik, sort 5/6/7) + List/Create/Edit masing-masing
+- Tes: `tests/Feature/AkademikPresensiTest.php` (kedua moda, duplikasi jurnal & presensi, izin rentang/tolak/batal + alasan wajib, koreksi, rekap, isolasi cabang)
+
