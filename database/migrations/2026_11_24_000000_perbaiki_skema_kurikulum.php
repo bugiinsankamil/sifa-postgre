@@ -20,6 +20,9 @@ return new class extends Migration
                 ->restrictOnDelete();
 
             $table->index('cabang_id');
+
+            // Status aktif untuk penerapan kurikulum per sekolah
+            $table->boolean('is_aktif')->default(true)->after('cabang_id');
         });
 
         // Hanya satu kurikulum default (tanpa tingkat) per sekolah + tahun ajaran.
@@ -58,6 +61,7 @@ return new class extends Migration
             $table->dropForeign(['sekolah_id', 'cabang_id']);
             $table->dropIndex(['cabang_id']);
             $table->dropColumn('cabang_id');
+            $table->dropColumn('is_aktif');
         });
     }
 };

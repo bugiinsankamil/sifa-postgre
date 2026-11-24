@@ -64,10 +64,7 @@ class KurikulumService
                     ->whereNull('tingkat_id')
                     ->first();
                 if ($sudahDefault) {
-                    throw new KurikulumException(
-                        'Sudah ada kurikulum default ('.$sudahDefault->kurikulum->kode.') untuk sekolah '.
-                        $sekolah->nama.' tahun ajaran '.$tahunAjaran->nama.'.'
-                    );
+                    throw new KurikulumException('sudah diterapkan ke sekolah');
                 }
             }
 

@@ -113,17 +113,17 @@ class AkademikKurikulumTest extends TestCase
     {
         $kurikulum = $this->buatKurikulum('KM', 'Kurikulum Merdeka');
 
-        app(KurikulumService::class)->terapkan(
+        $penerapan = app(KurikulumService::class)->terapkan(
             $kurikulum, $this->sekolah, $this->tahunAjaran, null, $this->sysadmin
         );
 
-        $this->expectException(KurikulumException::class);
-        $this->expectExceptionMessage('sudah diterapkan ke sekolah');
+        $hasil = app(KurikulumService::class)->nonaktifkan($penerapan, $this->sysadmin);
 
-        app(KurikulumService::class)->nonaktifkan(
-            KurikulumSekolah::query()->where('kurikulum_id', $kurikulum->id)->first(),
-            $this->sysadmin
-        );
+        $this->assertFalse($hasil->is_aktif);
+        $this->assertDatabaseHas('kurikulum_sekolah', [
+            'id' => $penerapan->id,
+            'is_aktif' => false,
+        ]);
     }
 
     public function test_nonaktifkan_penerapan_tidak_menghapus_histori(): void
