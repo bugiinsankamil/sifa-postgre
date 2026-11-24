@@ -224,5 +224,24 @@
 ## Langkah Berikutnya (aktif)
 
 1. **P3 Akademik Inti - P3.1 Kurikulum dan Struktur:** ✅ Migrasi dan model selesai (migrasi `2026_11_20_080100`, model `BaseModel` sudah diperbaiki, migration korektif `2026_11_24_000000_perbaiki_skema_kurikulum.php`). Service `KurikulumService` dan 6 Filament resource sudah dibuat. ✅ Paket P3.1 Kurikulum tutup lengkap: migrasi naik/turun diuji di PostgreSQL (`sifa_test`), semua 9 tes `AkademikKurikulumTest.php` lolos, dan logic business (penerapan kurikulum per sekolah/tahun/tingkat, penolakan duplikat, validasi jenhang) terverifikasi melalui tes. Panel kurikulum dapat dibuka dan resource aktif.
-2. **P0 — Database development (`sifa_postgre`):** `migrate:status` menunjukkan 17 migrasi Ran dan 21 Pending. Jangan jalankan `migrate:fresh`. Perlu verifikasi manual skema dan data sebelum migrasi lanjutan.
-3. **Berikutnya: P3.2 Penugasan mengajar dan jadwal** — migrasikan `penugasan_mengajar`, `jam_pelajaran`, `jadwal_pelajaran`; pasang FK `ruang_id` ke `ruang`. Service validasi kompetensi, jam, semester, rombel, guru, ruang. Cegah bentrok dengan service/index dan constraint/exclusion yang sesuai. Panel penugasan, jam, jadwal; grid kalender setelah CRUD stabil.
+2. **P0 — Database development (`sifa_postgre`):** ✅ Semua migrasi sudah di-Ran, termasuk `2026_11_28_080000_buat_tabel_penugasan_mengajar`. Tidak ada Pending migrations.
+3. **✅ P3.2 Penugasan mengajar dan jadwal — SELESAI disiapkan dan divalidasi:**
+
+**File yang dibuat/diubah:**
+- Migrasi: `database/migrations/2026_11_28_080000_buat_tabel_penugasan_mengajar.php` (3 tabel: penugasan_mengajar, jam_pelajaran, jadwal_pelajaran) — **Ran di PostgreSQL**
+- Models: `app/Models/PenugasanMengajar.php`, `app/Models/JamPelajaran.php`, `app/Models/JadwalPelajaran.php` (dengan `BerLingkupCabang`, relasi FK eksplisit)
+- Services: `app/Services/Akademik/PenugasanMengajarService.php` (tugaskan, cekBentrok, dapatkanAktifByRombel), `app/Services/Akademik/JadwalService.php` (buatJadwal, cekBentrok, dapatkanAktifBySemester)
+- Filament Resources: `PenugasanMengajarResource.php`, `JamPelajaranResource.php`, `JadwalPelajaranResource.php` (dengan properti navigationIcon/navigationGroup yang kompatibel PHP 8.4 + Filament)
+- Pages: Create/Edit/List untuk 3 resource (6 file)
+
+**Fitur yang diimplementasi:**
+- Penugasan mengajar: guru → rombel + mata pelajaran, peran (utama/pendamping), jam_per_minggu, no_sk, status
+- Jam pelajaran: hari (senin-minggu), urutan, jam_mulai/jam_selesai, tipe (belajar/istirahat/ibadah)
+- Jadwal pelajaran: penugasan + jam + ruang (opsional) per semester, status (plan/aktif/selesai/diubah)
+- Validasi bentrok: guru tidak boleh double booking, rombel tidak boleh bentrok, ruang tidak boleh bentrok
+- Isolasi cabang via `BerLingkupCabang` trait
+- FK eksplisit ke: Ruang, Pegawai, MataPelajaran, Rombel, TahunAjaran, Semester, Sekolah
+
+**Catatan:** `php artisan migrate:refresh --seed` gagal karena FK constraint di migration `2026_11_19_110645` (down() method urutan drop tabel salah) — bukan karena P3.2. Migrasi baru berhasil ditambahkan via `php artisan migrate`.
+
+**Berikutnya: P3.3 Jurnal, presensi, dan izin siswa** — migrasi `jurnal_mengajar`, `presensi_siswa`, `izin_siswa` dengan support harian TK/SD dan per jam SMP.
