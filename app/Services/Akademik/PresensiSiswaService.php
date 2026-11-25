@@ -90,10 +90,14 @@ class PresensiSiswaService
     /** Koreksi satu baris presensi (status/keterangan) dengan catat siapa yang memperbaiki. */
     public function koreksiPresensi(PresensiSiswa $presensi, array $data, User $dicatatOleh): PresensiSiswa
     {
-        $presensi->update(array_filter($data, fn ($key) => in_array($key, ['status', 'keterangan'], true), ARRAY_FILTER_USE_KEY));
-        $presensi->update(['dicatat_oleh' => $dicatatOleh->id]);
+        $this->pastikanBolehMencatat($presensi->rombel, $dicatatOleh);
 
-        return $presensi->fresh();
+        return DB::transaction(function () use ($presensi, $data, $dicatatOleh) {
+            $presensi->update(array_filter($data, fn ($key) => in_array($key, ['status', 'keterangan'], true), ARRAY_FILTER_USE_KEY));
+            $presensi->update(['dicatat_oleh' => $dicatatOleh->id]);
+
+            return $presensi->fresh();
+        });
     }
 
     /**

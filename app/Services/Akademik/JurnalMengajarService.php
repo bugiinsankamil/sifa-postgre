@@ -8,6 +8,7 @@ use App\Models\JamPelajaran;
 use App\Models\Pegawai;
 use App\Models\PenugasanMengajar;
 use App\Models\User;
+use App\Support\CabangKonteks;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -69,6 +70,8 @@ class JurnalMengajarService
     /** Perbarui isi jurnal (materi/kegiatan/catatan/status). */
     public function perbaruiJurnal(JurnalMengajar $jurnal, array $data, User $pengguna): JurnalMengajar
     {
+        $this->pastikanDapatMengelolaJurnal($pengguna);
+
         if ($jurnal->status === 'kosong') {
             throw new JurnalMengajarException('Jurnal yang ditandai kosong tidak dapat diubah.');
         }
@@ -81,8 +84,18 @@ class JurnalMengajarService
     /** Tandai jurnal sebagai kosong (tidak ada kegiatan belajar mengajar). */
     public function tandaiKosong(JurnalMengajar $jurnal, User $pengguna): JurnalMengajar
     {
+        $this->pastikanDapatMengelolaJurnal($pengguna);
+
         $jurnal->update(['status' => 'kosong']);
 
         return $jurnal->fresh();
+    }
+
+    /** Pastikan user berhak mengelola jurnal mengajar. */
+    private function pastikanDapatMengelolaJurnal(User $user): void
+    {
+        if (! app(CabangKonteks::class)->punyaPeran(['sysadmin', 'kepala_cabang', 'kepala_sekolah', 'wakil_kepala_sekolah', 'pj_program'])) {
+            throw new JurnalMengajarException('Anda tidak berhak mengelola jurnal mengajar.');
+        }
     }
 }

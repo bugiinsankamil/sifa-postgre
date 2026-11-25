@@ -8,6 +8,7 @@ use App\Models\Orang;
 use App\Models\RombelSiswa;
 use App\Models\Siswa;
 use App\Models\User;
+use App\Support\CabangKonteks;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -61,6 +62,8 @@ class IzinSiswaService
     /** Setujui izin (hanya status diajukan). */
     public function setujuiIzin(IzinSiswa $izin, User $disetujuiOleh): IzinSiswa
     {
+        $this->pastikanDapatMemprosesIzin($disetujuiOleh);
+
         return DB::transaction(function () use ($izin, $disetujuiOleh) {
             $terkunci = IzinSiswa::query()->lockForUpdate()->findOrFail($izin->id);
 
@@ -80,6 +83,8 @@ class IzinSiswaService
         if (blank($alasan)) {
             throw new IzinSiswaException('Alasan penolakan wajib diisi.');
         }
+
+        $this->pastikanDapatMemprosesIzin($penolak);
 
         return DB::transaction(function () use ($izin, $penolak, $alasan) {
             $terkunci = IzinSiswa::query()->lockForUpdate()->findOrFail($izin->id);
@@ -101,6 +106,8 @@ class IzinSiswaService
             throw new IzinSiswaException('Alasan pembatalan wajib diisi.');
         }
 
+        $this->pastikanDapatMemprosesIzin($pembatal);
+
         return DB::transaction(function () use ($izin, $pembatal, $alasan) {
             $terkunci = IzinSiswa::query()->lockForUpdate()->findOrFail($izin->id);
 
@@ -112,5 +119,13 @@ class IzinSiswaService
 
             return $terkunci->fresh();
         });
+    }
+
+    /** Pastikan user berhak memproses (setujui/tolak/batal) izin siswa. */
+    private function pastikanDapatMemprosesIzin(User $user): void
+    {
+        if (! app(CabangKonteks::class)->punyaPeran(['sysadmin', 'kepala_cabang', 'kepala_sekolah', 'wakil_kepala_sekolah', 'pj_program'])) {
+            throw new IzinSiswaException('Anda tidak berhak memproses izin siswa.');
+        }
     }
 }
