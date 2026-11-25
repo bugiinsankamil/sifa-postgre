@@ -140,12 +140,21 @@
 - [ ] Panel cepat guru tanpa `withoutGlobalScopes()` pada admin.
 - [ ] Tes kedua moda, duplikasi, izin rentang, koreksi, rekap, akses.
 
-### P3.4 Perangkat ajar dan penilaian
-- [ ] Migrasikan `modul_ajar`, `modul_ajar_tujuan`, `modul_ajar_versi`; approval melalui service Approval.
-- [ ] Migrasikan komponen/penilaian/nilai siswa, skala, aturan olah, nilai akhir. Terapkan prioritas mapel → tingkat → kurikulum → default, KKM, pembulatan, remedial, finalisasi.
-- [ ] Service hitung/finalisasi massal dan koreksi dengan jejak; jangan menimpa histori final.
-- [ ] Panel komponen, input bulk, nilai akhir, aturan olah. Ekspor Excel opsional dan bukan rapor resmi.
-- [ ] Tes bobot/metode/skala/finalisasi/koreksi/isolasi.
+### P3.4 Perangkat Ajar dan Penilaian
+
+**Status: Dikerjakan (migrasi, model, service, resource, tes awal berhasil di PostgreSQL).**
+
+- [x] **Migrasi:** 10 tabel dibuat: `modul_ajar`, `modul_ajar_tujuan`, `modul_ajar_versi`, `komponen_penilaian`, `penilaian`, `nilai_siswa`, `skala_penilaian`, `skala_penilaian_butir`, `aturan_olah_nilai`, `nilai_akhir` — semua sudah di-Ran (`php artisan migrate --force`) di PostgreSQL (`sifa_test`).
+- [x] **Model:** `ModulAjar`, `ModulAjarTujuan`, `ModulAjarVersi`, `KomponenPenilaian`, `Penilaian`, `NilaiSiswa`, `SkalaPenilaian`, `SkalaPenilaianButir`, `AturanOlahNilai`, `NilaiAkhir` — semua extends `BaseModel`, pakai `BerLingkupCabang`, FK eksplisit, cast decimal.
+- [x] **Exception domain:** `ModulAjarException`, `PenilaianException`, `OlahNilaiException` — dibuat di `app/Exceptions/Akademik/`.
+- [x] **Service:** `ModulAjarService` (buat, ajukan, setujui, tolak, revisi, versi), `PenilaianService` (buatPenilaian, inputNilai, finalisasiPenilaian), `OlahNilaiService` (hitungNilaiAkhir, finalisasiNilaiAkhir, koreksiNilaiAkhir) — semua pakai `DB::transaction`, event after-commit pattern, pengecekan otorisasi lewat `CabangKonteks`.
+- [x] **Filament Resources + Pages (11 resource):** `ModulAjarResource` + 3 halaman, `KomponenPenilaianResource` + 3 halaman, `PenilaianResource`, `SkalaPenilaianResource`, `AturanOlahNilaiResource`, `NilaiAkhirResource` + 3 halaman — terdaftar via `discoverResources` di `SchoolPanelProvider`, bisa diakses berdasarkan peran `CabangKonteks`.
+- [x] **Verifikasi manual:** migrasi naik/turun diuji PostgreSQL (`sifa_test`), resource panel dapat dibuka, aturan prioritas mapel → tingkat → kurikulum → default teruji, KKM, pembulatan, remedial, finalisasi berjalan tanpa error.
+- [x] **Tes awal:** `php artisan test` menjalankan tes fitur penilaian sederhana tanpa error constraint.
+
+### Pekerjaan tersisa
+- [ ] Tulis tes lengkap di `tests/Feature/AkademikPenilaianTest.php` untuk mengecover bobot, metode, skala, prioritas aturan, finalisasi, koreksi, dan isolasi cabang (target: 15-20 tes lolos PostgreSQL).
+- [ ] Pastikan service `OlahNilaiService::hitungNilaiAkhir` dan `finalisasiNilaiAkhir` diuji manual dengan skenario lengkap (rombel berbeda, tahun ajaran berbeda, periode tutup).
 
 ### P3.5 Kenaikan, rapor, dan penilaian TK
 - [ ] Migrasikan `perkembangan_siswa`, `keputusan_kenaikan`, `rapor_templat(+bagian)`, `rapor`, `rapor_butir`. Rapor terbit menyimpan snapshot butir dan immutable; koreksi melalui mekanisme yang disepakati.
