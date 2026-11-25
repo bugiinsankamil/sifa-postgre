@@ -54,20 +54,31 @@ class PresensiSiswaService
                     throw new PresensiSiswaException('Siswa ID '.$siswaId.' bukan anggota aktif rombel '.$rombel->nama);
                 }
 
-                PresensiSiswa::query()->updateOrCreate(
-                    [
-                        'siswa_id' => $siswaId,
-                        'tanggal' => $tanggal,
-                        'jurnal_mengajar_id' => $jurnal?->id,
-                    ],
-                    [
-                        'cabang_id' => $rombel->cabang_id,
-                        'rombel_id' => $rombel->id,
-                        'status' => $baris['status'] ?? 'hadir',
-                        'keterangan' => $baris['keterangan'] ?? null,
-                        'dicatat_oleh' => $dicatatOleh->id,
-                    ]
-                );
+                $duplikat = $jurnal === null
+                    ? PresensiSiswa::query()
+                        ->where('siswa_id', $siswaId)
+                        ->where('tanggal', $tanggal)
+                        ->first()
+                    : PresensiSiswa::query()
+                        ->where('siswa_id', $siswaId)
+                        ->where('tanggal', $tanggal)
+                        ->where('jurnal_mengajar_id', $jurnal->id)
+                        ->first();
+
+                if ($duplikat !== null) {
+                    throw new PresensiSiswaException('Presensi siswa ID '.$siswaId.' untuk tanggal '.$tanggal.' sudah dicatat.');
+                }
+
+                PresensiSiswa::query()->create([
+                    'siswa_id' => $siswaId,
+                    'tanggal' => $tanggal,
+                    'jurnal_mengajar_id' => $jurnal?->id,
+                    'cabang_id' => $rombel->cabang_id,
+                    'rombel_id' => $rombel->id,
+                    'status' => $baris['status'] ?? 'hadir',
+                    'keterangan' => $baris['keterangan'] ?? null,
+                    'dicatat_oleh' => $dicatatOleh->id,
+                ]);
 
                 $disimpan++;
             }
@@ -116,6 +127,10 @@ class PresensiSiswaService
      */
     private function pastikanBolehMencatat(Rombel $rombel, User $pengguna): void
     {
+        if ($pengguna->isSysadmin()) {
+            return;
+        }
+
         $pegawai = $this->pegawaiDariPengguna($pengguna);
 
         if ($pegawai !== null && $rombel->wali_kelas_id === $pegawai->id) {

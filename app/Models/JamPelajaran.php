@@ -14,10 +14,7 @@ class JamPelajaran extends BaseModel
 
     protected function casts(): array
     {
-        return [
-            'jam_mulai' => 'time',
-            'jam_selesai' => 'time',
-        ];
+        return [];
     }
 
     public function sekolah(): BelongsTo

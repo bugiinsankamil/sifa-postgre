@@ -25,8 +25,6 @@ return new class extends Migration {
             $table->timestamps();
 
             // Constraints and indexes
-            $table->unique(['rombel_id', 'mata_pelajaran_id', 'semester_id', 'pegawai_id'], 'penugasan_mengajar_unique');
-
             $table->index('sekolah_id');
             $table->index('tahun_ajaran_id');
             $table->index('semester_id');

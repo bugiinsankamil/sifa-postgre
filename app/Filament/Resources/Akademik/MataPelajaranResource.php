@@ -24,7 +24,7 @@ use UnitEnum;
 class MataPelajaranResource extends Resource
 {
     protected static ?string $model = MataPelajaran::class;
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-book';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-book-open';
     protected static string|UnitEnum|null $navigationGroup = 'Akademik';
     protected static ?int $navigationSort = 2;
     protected static ?string $navigationLabel = 'Mata Pelajaran';

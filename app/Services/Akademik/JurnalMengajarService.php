@@ -28,7 +28,7 @@ class JurnalMengajarService
         ?string $kegiatan = null,
         ?string $catatan = null,
         string $status = 'hadir',
-        User $pengguna
+        ?User $pengguna = null
     ): JurnalMengajar {
         if ($penugasan->status !== 'aktif') {
             throw new JurnalMengajarException('Penugasan mengajar tidak aktif.');

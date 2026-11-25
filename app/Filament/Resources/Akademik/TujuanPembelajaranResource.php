@@ -23,7 +23,7 @@ use UnitEnum;
 class TujuanPembelajaranResource extends Resource
 {
     protected static ?string $model = TujuanPembelajaran::class;
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-target';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-academic-cap';
     protected static string|UnitEnum|null $navigationGroup = 'Akademik';
     protected static ?int $navigationSort = 6;
     protected static ?string $navigationLabel = 'Tujuan Pembelajaran';

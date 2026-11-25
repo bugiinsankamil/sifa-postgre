@@ -36,10 +36,6 @@ class IzinSiswaService
             throw new IzinSiswaException('Tanggal selesai tidak boleh sebelum tanggal mulai.');
         }
 
-        if (Carbon::parse($tanggalMulai)->lt(today())) {
-            throw new IzinSiswaException('Pengajuan izin untuk tanggal yang sudah lewat tidak diizinkan.');
-        }
-
         return DB::transaction(function () use ($siswa, $tanggalMulai, $tanggalSelesai, $jenis, $alasan, $diajukanOleh) {
             $cabangId = RombelSiswa::query()
                 ->where('siswa_id', $siswa->id)
