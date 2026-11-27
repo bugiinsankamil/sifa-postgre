@@ -32,15 +32,15 @@ class OlahNilaiService
 
         DB::transaction(function () use ($penugasan, $semester, $aturan, $siswaList, &$dihitung) {
             foreach ($siswaList as $siswa) {
-                $nilaiAkhir = $this->hitungNilaiAkhirSiswa($penugasan, $siswa, $aturan);
+                $nilaiAkhir = $this->hitungNilaiAkhirSiswa($penugasan, $siswa, $aturan, $semester);
 
                 NilaiAkhir::updateOrCreate(
                     [
                         'penugasan_mengajar_id' => $penugasan->id,
                         'siswa_id' => $siswa->id,
+                        'semester_id' => $semester->id,
                     ],
                     [
-                        'semester_id' => $semester->id,
                         'nilai_akhir' => $nilaiAkhir['nilai'],
                         'skala_butir_id' => $nilaiAkhir['skala_butir_id'] ?? null,
                         'deskripsi' => $nilaiAkhir['deskripsi'] ?? null,
@@ -69,6 +69,17 @@ class OlahNilaiService
             ->update(['status' => 'final']);
 
         return (int) $final;
+    }
+
+    /** Pastikan nilai final tidak dapat diubah kembali. */
+    public function pastikanBolehMencatat(PenugasanMengajar $penugasan, Semester $semester): bool
+    {
+        $nilaiAkhir = NilaiAkhir::where('penugasan_mengajar_id', $penugasan->id)
+            ->where('semester_id', $semester->id)
+            ->where('status', 'final')
+            ->first();
+
+        return is_null($nilaiAkhir);
     }
 
     /** Koreksi satu nilai akhir (hanya jika status draft). Catat siapa yang memperbaiki. */
@@ -156,12 +167,19 @@ class OlahNilaiService
     private function hitungNilaiAkhirSiswa(
         PenugasanMengajar $penugasan,
         Siswa $siswa,
-        AturanOlahNilai $aturan
+        AturanOlahNilai $aturan,
+        ?Semester $semester = null
     ): array {
-        $nilaiList = NilaiSiswa::join('penilaian', 'nilai_siswa.penilaian_id', '=', 'penilaian.id')
+        $query = NilaiSiswa::join('penilaian', 'nilai_siswa.penilaian_id', '=', 'penilaian.id')
             ->where('penilaian.penugasan_mengajar_id', $penugasan->id)
             ->where('nilai_siswa.siswa_id', $siswa->id)
-            ->where('penilaian.status', 'final')
+            ->where('penilaian.status', 'final');
+
+        if ($semester) {
+            $query->where('penilaian.semester_id', $semester->id);
+        }
+
+        $nilaiList = $query
             ->select('nilai_siswa.*', 'komponen_id', 'bobot')
             ->join('komponen_penilaian', 'penilaian.komponen_id', '=', 'komponen_penilaian.id')
             ->get();
