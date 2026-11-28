@@ -372,6 +372,13 @@ class AkademikKenaikanRaporTkTest extends TestCase
         $terverifikasi = $service->verifikasi($rapor, $this->sysadmin);
         $this->assertSame('diverifikasi', $terverifikasi->status);
 
+        \App\Models\RaporButir::create([
+            'rapor_id' => $rapor->id,
+            'label' => 'Nilai Akhir',
+            'urutan' => 1,
+            'deskripsi' => 'Nilai akhir semester',
+        ]);
+
         $ditandatangani = User::create([
             'orang_id' => \App\Models\Orang::create(['nama_lengkap' => 'Wali Kelas', 'jenis_kelamin' => 'L'])->id,
             'username' => 'walikelas',
