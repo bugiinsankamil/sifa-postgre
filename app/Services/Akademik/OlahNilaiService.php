@@ -10,16 +10,19 @@ use App\Models\PenugasanMengajar;
 use App\Models\Semester;
 use App\Models\Siswa;
 use App\Models\User;
+use App\Support\CabangKonteks;
 use Illuminate\Support\Facades\DB;
 
 class OlahNilaiService
 {
-    /** Hitung nilai akhir untuk semua siswa dalam satu penugasan mengajar + semester. */
+    /** Hitung nilai akhir untuk semua siswa dalam satu penugasan mengajar + semester. Nilai yang sudah final tidak diubah ulang. */
     public function hitungNilaiAkhir(
         PenugasanMengajar $penugasan,
         Semester $semester,
         ?User $pengguna = null
     ): int {
+        $this->pastikanLingkupCabang($penugasan);
+
         $aturan = $this->cariAturanOlah($penugasan);
 
         if (!$aturan) {
@@ -28,11 +31,25 @@ class OlahNilaiService
 
         $siswaList = $this->dapatkanSiswaAktif($penugasan);
 
+        $finalIds = NilaiAkhir::where('penugasan_mengajar_id', $penugasan->id)
+            ->where('semester_id', $semester->id)
+            ->where('status', 'final')
+            ->pluck('siswa_id')
+            ->toArray();
+
         $dihitung = 0;
 
-        DB::transaction(function () use ($penugasan, $semester, $aturan, $siswaList, &$dihitung) {
+        DB::transaction(function () use ($penugasan, $semester, $aturan, $siswaList, $finalIds, &$dihitung) {
             foreach ($siswaList as $siswa) {
+                if (in_array($siswa->id, $finalIds, true)) {
+                    continue;
+                }
+
                 $nilaiAkhir = $this->hitungNilaiAkhirSiswa($penugasan, $siswa, $aturan, $semester);
+
+                if ($nilaiAkhir['nilai'] === null) {
+                    continue;
+                }
 
                 NilaiAkhir::updateOrCreate(
                     [
@@ -63,6 +80,17 @@ class OlahNilaiService
         Semester $semester,
         User $disetujuiOleh
     ): int {
+        $this->pastikanLingkupCabang($penugasan);
+
+        $draftCount = NilaiAkhir::where('penugasan_mengajar_id', $penugasan->id)
+            ->where('semester_id', $semester->id)
+            ->where('status', 'draft')
+            ->count();
+
+        if ($draftCount === 0) {
+            throw new OlahNilaiException('Tidak ada nilai akhir draft yang dapat difinalisasi.');
+        }
+
         $final = NilaiAkhir::where('penugasan_mengajar_id', $penugasan->id)
             ->where('semester_id', $semester->id)
             ->where('status', 'draft')
@@ -90,6 +118,8 @@ class OlahNilaiService
         ?bool $isTuntas = null,
         User $diperbaruiOleh
     ): NilaiAkhir {
+        $this->pastikanLingkupCabangViaNilaiAkhir($nilaiAkhir);
+
         if ($nilaiAkhir->status === 'final') {
             throw new OlahNilaiException('Nilai akhir sudah final. Koreksi tidak diperbolehkan.');
         }
@@ -172,8 +202,7 @@ class OlahNilaiService
     ): array {
         $query = NilaiSiswa::join('penilaian', 'nilai_siswa.penilaian_id', '=', 'penilaian.id')
             ->where('penilaian.penugasan_mengajar_id', $penugasan->id)
-            ->where('nilai_siswa.siswa_id', $siswa->id)
-            ->where('penilaian.status', 'final');
+            ->where('nilai_siswa.siswa_id', $siswa->id);
 
         if ($semester) {
             $query->where('penilaian.semester_id', $semester->id);
@@ -190,44 +219,59 @@ class OlahNilaiService
 
         switch ($aturan->metode) {
             case 'rata_sumatif':
-                $nilai = $nilaiList->avg(fn ($n) => (float) ($n->nilai_remedial ?? $n->nilai));
+                $nilai = $nilaiList->avg(fn ($n) => $this->nilaiEfektif($n->nilai, $n->nilai_remedial));
                 break;
             case 'nilai_tertinggi':
-                $nilai = $nilaiList->max(fn ($n) => (float) ($n->nilai_remedial ?? $n->nilai));
+                $nilai = $nilaiList->max(fn ($n) => $this->nilaiEfektif($n->nilai, $n->nilai_remedial));
                 break;
             case 'formula':
                 $nilai = $this->evalFormula($aturan->formula ?? [], $nilaiList);
                 break;
             case 'rata_berbobot':
             default:
-                $totalBobot = $nilaiList->sum(fn ($n) => (float) $n->komponen->bobot);
+                $totalBobot = $nilaiList->sum(fn ($n) => (float) $n->bobot);
                 if ($totalBobot <= 0) {
-                    $nilai = $nilaiList->avg(fn ($n) => (float) ($n->nilai_remedial ?? $n->nilai));
+                    $nilai = $nilaiList->avg(fn ($n) => $this->nilaiEfektif($n->nilai, $n->nilai_remedial));
                 } else {
-                    $nilai = $nilaiList->sum(fn ($n) => (float) ($n->nilai_remedial ?? $n->nilai) * (float) $n->komponen->bobot) / $totalBobot;
+                    $nilai = $nilaiList->sum(fn ($n) => $this->nilaiEfektif($n->nilai, $n->nilai_remedial) * (float) $n->bobot) / $totalBobot;
                 }
                 break;
         }
 
-        $nilai = $this->bulatkan($nilai, $aturan->pembulatan ?? 'standar');
+        $nilai = $nilai !== null ? $this->bulatkan($nilai, $aturan->pembulatan ?? 'standar') : null;
 
         $skalaButir = null;
         $isTuntas = false;
-        if ($aturan->skala_id && $nilai !== null) {
-            $query = \App\Models\SkalaPenilaianButir::where('skala_id', $aturan->skala_id);
-            if (!blank($aturan->kkm)) {
-                $query->where('nilai_min', '<=', $nilai)->where('nilai_maks', '>=', $nilai);
+        if ($nilai !== null && !blank($aturan->kkm)) {
+            $isTuntas = $nilai >= (float) $aturan->kkm;
+            if ($aturan->skala_id) {
+                $query = \App\Models\SkalaPenilaianButir::where('skala_id', $aturan->skala_id)
+                    ->where('nilai_min', '<=', $nilai)
+                    ->where('nilai_maks', '>=', $nilai);
+                $skalaButir = $query->first();
             }
-            $skalaButir = $query->first();
-            $isTuntas = $nilai >= ($aturan->kkm ?? 0);
         }
 
         return [
-            'nilai' => round($nilai, 2),
+            'nilai' => $nilai,
             'skala_butir_id' => $skalaButir?->id,
             'deskripsi' => $skalaButir?->deskripsi_templat ?? null,
             'is_tuntas' => $isTuntas,
         ];
+    }
+
+    /** Nilai efektif yang digunakan dalam perhitungan: bila remedial tersedia, gunakan rata-rata nilai asli dan remedial. */
+    private function nilaiEfektif(?float $nilai, ?float $nilaiRemedial): ?float
+    {
+        if ($nilai === null && $nilaiRemedial === null) {
+            return null;
+        }
+
+        if ($nilai !== null && $nilaiRemedial !== null) {
+            return ((float) $nilai + (float) $nilaiRemedial) / 2;
+        }
+
+        return (float) ($nilaiRemedial ?? $nilai);
     }
 
     private function bulatkan(float $nilai, string $metode): float
@@ -242,5 +286,23 @@ class OlahNilaiService
     private function evalFormula(array $formula, \Illuminate\Support\Collection $nilaiList): float
     {
         return $nilaiList->avg(fn ($n) => (float) ($n->nilai_remedial ?? $n->nilai));
+    }
+
+    /** Pastikan pengguna boleh mengakses data cabang milik penugasan ini. */
+    private function pastikanLingkupCabang(PenugasanMengajar $penugasan): void
+    {
+        $konteks = app(CabangKonteks::class);
+        $diizinkan = $konteks->cabangDiizinkan();
+
+        if ($diizinkan !== null && !in_array((int) $penugasan->cabang_id, $diizinkan, true)) {
+            throw new OlahNilaiException('Tidak berhak mengelola nilai untuk cabang ini.');
+        }
+    }
+
+    /** Pastikan pengguna boleh mengakses cabang dari nilai akhir yang terkait. */
+    private function pastikanLingkupCabangViaNilaiAkhir(NilaiAkhir $nilaiAkhir): void
+    {
+        $penugasan = $nilaiAkhir->penugasanMengajar;
+        $this->pastikanLingkupCabang($penugasan);
     }
 }

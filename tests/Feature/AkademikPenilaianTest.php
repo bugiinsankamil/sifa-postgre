@@ -256,6 +256,16 @@ public function test_hitung_nilai_akhir_semester_terjaga(): void
     $this->buatNilaiSiswa($penugasanGanjil, $siswa1, 80.00, null, null);
     $this->buatNilaiSiswa($penugasanGenap, $siswa2, 90.00, null, null);
 
+    AturanOlahNilai::create([
+        'sekolah_id' => $this->sekolah->id,
+        'tahun_ajaran_id' => $this->tahunAjaran->id,
+        'mata_pelajaran_id' => $this->mataPelajaran->id,
+        'tingkat_id' => $this->tingkat->id,
+        'metode' => 'rata_berbobot',
+        'kkm' => 70.00,
+        'skala_id' => null,
+    ]);
+
     $this->olahNilai->hitungNilaiAkhir($penugasanGanjil, $this->semesterGanjil, $this->sysadmin);
 
     $nilaiAkhirGanjil = NilaiAkhir::where('penugasan_mengajar_id', $penugasanGanjil->id)
@@ -280,10 +290,7 @@ public function test_isolasi_cabang_nilai_akhir(): void
 {
     $this->actingAs($this->sysadmin);
     $penugasanSekolah1 = $this->buatPenugasan($this->sekolah);
-    $penugasanSekolah2 = $this->buatPenugasan($this->sekolahLain);
-
-    $siswa1 = $this->buatSiswaAktif();
-    $siswa2 = $this->buatSiswaAktif();
+    $penugasanSekolah2 = $this->buatPenugasan($this->sekolahLain, $this->mataPelajaranLain);
 
     $aturan1 = AturanOlahNilai::create([
         'sekolah_id' => $this->sekolah->id,
@@ -305,9 +312,21 @@ public function test_isolasi_cabang_nilai_akhir(): void
         'skala_id' => null,
     ]);
 
-    $this->olahNilai->hitungNilaiAkhir($penugasanSekolah1, $this->semesterGanjil, $this->sysadmin);
+    KomponenPenilaian::create([
+        'sekolah_id' => $this->sekolahLain->id,
+        'tahun_ajaran_id' => $this->tahunAjaran->id,
+        'kode' => 'UTS',
+        'nama' => 'Ujian Tengah Semester',
+        'jenis' => 'uts',
+        'bobot' => 1.00,
+    ]);
+
+    $siswa1 = $this->buatSiswaAktif(['nama_lengkap' => 'Siswa Sekolah 1']);
+    $siswa2 = $this->buatSiswaAktif(['nama_lengkap' => 'Siswa Sekolah 2'], $this->sekolahLain);
 
     $this->buatNilaiSiswa($penugasanSekolah1, $siswa1, 85.00, null, null);
+
+    $this->olahNilai->hitungNilaiAkhir($penugasanSekolah1, $this->semesterGanjil, $this->sysadmin);
 
     $nilaiAkhir1 = NilaiAkhir::where('penugasan_mengajar_id', $penugasanSekolah1->id)
         ->where('siswa_id', $siswa1->id)
@@ -316,9 +335,9 @@ public function test_isolasi_cabang_nilai_akhir(): void
     $this->assertNotNull($nilaiAkhir1);
     $this->assertEquals(85.00, $nilaiAkhir1->nilai_akhir);
 
-    $this->olahNilai->hitungNilaiAkhir($penugasanSekolah2, $this->semesterGanjil, $this->sysadmin);
-
     $this->buatNilaiSiswa($penugasanSekolah2, $siswa2, 90.00, null, null);
+
+    $this->olahNilai->hitungNilaiAkhir($penugasanSekolah2, $this->semesterGanjil, $this->sysadmin);
 
     $nilaiAkhir2 = NilaiAkhir::where('penugasan_mengajar_id', $penugasanSekolah2->id)
         ->where('siswa_id', $siswa2->id)
@@ -333,6 +352,8 @@ public function test_kkm_dan_skala_butir_dihitung(): void
     $penugasan = $this->buatPenugasan();
 
     $siswa1 = $this->buatSiswaAktif();
+
+    $this->buatNilaiSiswa($penugasan, $siswa1, 80.00, null, null);
 
     $aturan = AturanOlahNilai::create([
         'sekolah_id' => $penugasan->sekolah_id,
@@ -361,6 +382,8 @@ public function test_kkm_di_bawah_nilai_tidak_tuntas(): void
     $penugasan = $this->buatPenugasan();
 
     $siswa1 = $this->buatSiswaAktif();
+
+    $this->buatNilaiSiswa($penugasan, $siswa1, 60.00, null, null);
 
     $aturan = AturanOlahNilai::create([
         'sekolah_id' => $penugasan->sekolah_id,
@@ -401,6 +424,8 @@ public function test_pembulatan_standar(): void
         'skala_id' => null,
     ]);
 
+    $this->buatNilaiSiswa($penugasan, $siswa1, 82.35, null, null);
+
     $this->olahNilai->hitungNilaiAkhir($penugasan, $this->semesterGanjil, $this->sysadmin);
 
     $nilaiAkhir = NilaiAkhir::where('penugasan_mengajar_id', $penugasan->id)
@@ -415,6 +440,8 @@ public function test_pembulatan_atas(): void
     $this->actingAs($this->sysadmin);
     $penugasan = $this->buatPenugasan();
 
+    $siswa1 = $this->buatSiswaAktif();
+
     $aturan = AturanOlahNilai::create([
         'sekolah_id' => $penugasan->sekolah_id,
         'tahun_ajaran_id' => $penugasan->tahun_ajaran_id,
@@ -426,10 +453,12 @@ public function test_pembulatan_atas(): void
         'skala_id' => null,
     ]);
 
+    $this->buatNilaiSiswa($penugasan, $siswa1, 82.35, null, null);
+
     $this->olahNilai->hitungNilaiAkhir($penugasan, $this->semesterGanjil, $this->sysadmin);
 
     $nilaiAkhir = NilaiAkhir::where('penugasan_mengajar_id', $penugasan->id)
-        ->where('siswa_id', $this->buatSiswaAktif()->id)
+        ->where('siswa_id', $siswa1->id)
         ->first();
 
     $this->assertNotNull($nilaiAkhir);
@@ -439,6 +468,8 @@ public function test_pembulatan_bawah(): void
 {
     $this->actingAs($this->sysadmin);
     $penugasan = $this->buatPenugasan();
+
+    $siswa1 = $this->buatSiswaAktif();
 
     $aturan = AturanOlahNilai::create([
         'sekolah_id' => $penugasan->sekolah_id,
@@ -451,10 +482,12 @@ public function test_pembulatan_bawah(): void
         'skala_id' => null,
     ]);
 
+    $this->buatNilaiSiswa($penugasan, $siswa1, 82.35, null, null);
+
     $this->olahNilai->hitungNilaiAkhir($penugasan, $this->semesterGanjil, $this->sysadmin);
 
     $nilaiAkhir = NilaiAkhir::where('penugasan_mengajar_id', $penugasan->id)
-        ->where('siswa_id', $this->buatSiswaAktif()->id)
+        ->where('siswa_id', $siswa1->id)
         ->first();
 
     $this->assertNotNull($nilaiAkhir);
@@ -475,6 +508,8 @@ public function test_finalisasi_nilai_akhir_draft_ke_final(): void
         'kkm' => 70.00,
         'skala_id' => null,
     ]);
+
+    $this->buatNilaiSiswa($penugasan, $siswa1, 80.00, null, null);
 
     $this->olahNilai->hitungNilaiAkhir($penugasan, $this->semesterGanjil, $this->sysadmin);
 
@@ -515,6 +550,8 @@ public function test_finalisasi_nilai_akhir_sudah_final_ditolak(): void
         'skala_id' => null,
     ]);
 
+    $this->buatNilaiSiswa($penugasan, $siswa1, 80.00, null, null);
+
     $this->olahNilai->hitungNilaiAkhir($penugasan, $this->semesterGanjil, $this->sysadmin);
     $this->olahNilai->finalisasiNilaiAkhir($penugasan, $this->semesterGanjil, $this->sysadmin);
 
@@ -539,6 +576,8 @@ public function test_koreksi_nilai_akhir_draft(): void
         'skala_id' => null,
     ]);
 
+    $this->buatNilaiSiswa($penugasan, $siswa1, 80.00, null, null);
+
     $this->olahNilai->hitungNilaiAkhir($penugasan, $this->semesterGanjil, $this->sysadmin);
 
     $nilaiAkhir = NilaiAkhir::where('penugasan_mengajar_id', $penugasan->id)
@@ -552,6 +591,7 @@ public function test_koreksi_nilai_akhir_draft(): void
         nilaiAkhir: $nilaiAkhir,
         nilaiBaru: 88.50,
         deskripsiBaru: 'Nilai diperbaiki',
+        isTuntas: null,
         diperbaruiOleh: $this->sysadmin,
     );
 
@@ -580,6 +620,8 @@ public function test_koreksi_nilai_akhir_final_ditolak(): void
         'skala_id' => null,
     ]);
 
+    $this->buatNilaiSiswa($penugasan, $siswa1, 80.00, null, null);
+
     $this->olahNilai->hitungNilaiAkhir($penugasan, $this->semesterGanjil, $this->sysadmin);
     $this->olahNilai->finalisasiNilaiAkhir($penugasan, $this->semesterGanjil, $this->sysadmin);
 
@@ -592,6 +634,8 @@ public function test_koreksi_nilai_akhir_final_ditolak(): void
     $this->olahNilai->koreksiNilaiAkhir(
         nilaiAkhir: $nilaiAkhir,
         nilaiBaru: 99.00,
+        deskripsiBaru: null,
+        isTuntas: null,
         diperbaruiOleh: $this->sysadmin,
     );
 }
@@ -744,13 +788,25 @@ public function test_nilai_siswa_tidak_bisa_diinput_setelah_final(): void
     $this->actingAs($this->sysadmin);
     $penugasan = $this->buatPenugasan();
 
+    app(PenilaianService::class)->finalisasiPenilaian(
+        Penilaian::where('penugasan_mengajar_id', $penugasan->id)
+            ->where('status', 'draft')
+            ->firstOrFail(),
+        $this->sysadmin,
+    );
+
     $penilaian = Penilaian::where('penugasan_mengajar_id', $penugasan->id)
         ->where('status', 'final')
         ->firstOrFail();
 
+    $siswa = $this->buatSiswaAktif();
+
     app(PenilaianService::class)->inputNilai(
         penilaian: $penilaian,
-        siswa: $this->buatSiswaAktif(),
+        siswa: $siswa,
+        nilai: 70.00,
+        nilaiRemedial: null,
+        catatan: null,
         dicatatOleh: $this->sysadmin,
     );
 }
@@ -838,8 +894,9 @@ public function test_nilai_siswa_bisa_diinput(): void
         return $penugasan;
     }
 
-    private function buatSiswaAktif(array $attributes = []): Siswa
+    private function buatSiswaAktif(array $attributes = [], ?Sekolah $sekolah = null): Siswa
     {
+        $sekolah = $sekolah ?? $this->sekolah;
         $namaLengkap = $attributes['nama_lengkap'] ?? 'Siswa Test';
         unset($attributes['nama_lengkap']);
 
@@ -857,18 +914,20 @@ public function test_nilai_siswa_bisa_diinput(): void
 
         // Buat RombelSiswa untuk asosiasi siswa ke rombel
         $rombel = Rombel::firstOrCreate([
-            'sekolah_id' => $this->sekolah->id,
+            'sekolah_id' => $sekolah->id,
             'tingkat_id' => $this->tingkat->id,
             'tahun_ajaran_id' => $this->tahunAjaran->id,
-            'cabang_id' => $this->sekolah->cabang_id,
-            'nama' => 'Rombel Test',
+            'cabang_id' => $sekolah->cabang_id,
+            'nama' => 'Rombel Test ' . $this->tingkat->kode,
             'status' => 'aktif',
         ]);
 
         RombelSiswa::firstOrCreate([
             'rombel_id' => $rombel->id,
             'siswa_id' => $siswa->id,
+            'cabang_id' => $sekolah->cabang_id,
             'tahun_ajaran_id' => $this->tahunAjaran->id,
+            'tanggal_masuk' => now()->format('Y-m-d'),
             'status' => 'aktif',
             'tanggal_keluar' => null,
         ]);

@@ -142,19 +142,14 @@
 
 ### P3.4 Perangkat Ajar dan Penilaian
 
-**Status: Dikerjakan - Migrasi, model, service, resource verified di PostgreSQL; tes penilaian sedang dikerjakan.**
+**Status: Selesai — Migrasi, model, service, resource, dan tes penilaian verified di PostgreSQL (`sifa_test`).**
 
 - [x] **Migrasi:** 10 tabel dibuat dan di-Ran di PostgreSQL (`sifa_test`).
 - [x] **Model:** Semua model extends `BaseModel`, pakai `BerLingkupCabang`, FK eksplisit, cast decimal.
 - [x] **Exception domain:** `OlahNilaiException` — dibuat di `app/Exceptions/Akademik/`.
-- [x] **Service:** `OlahNilaiService` (hitungNilaiAkhir, finalisasiNilaiAkhir, koreksiNilaiAkhir) — pakai `DB::transaction`, semester filtering, pengecekan otorisasi lewat `CabangKonteks`, dan proteksi nilai final.
+- [x] **Service:** `OlahNilaiService` (hitungNilaiAkhir, finalisasiNilaiAkhir, koreksiNilaiAkhir) — pakai `DB::transaction`, semester filtering, pengecekan otorisasi lewat `CabangKonteks`, proteksi nilai final dari hitung ulang dan koreksi, penanganan remedial (rata-rata nilai asli + remedial), ketuntasan KKM dihitung independent dari skala.
 - [x] **Filament Resources + Pages:** 11 resource terdaftar via `discoverResources` di `SchoolPanelProvider`.
-- [x] **Verifikasi manual:** migrasi naik/turun diuji PostgreSQL, resource panel dapat dibuka, aturan bisnis terverifikasi.
-- [ ] **Tes penilaian:** `tests/Feature/AkademikPenilaianTest.php` sedang dikerjakan untuk mengecover bobot, metode, skala, prioritas aturan, finalisasi, koreksi, dan isolasi cabang.
-
-### Pekerjaan tersisa
-- [ ] Lengkapi tes di `tests/Feature/AkademikPenilaianTest.php` untuk mengecover bobot, metode, skala, prioritas aturan, finalisasi, koreksi, dan isolasi cabang.
-- [ ] Pastikan service `OlahNilaiService::hitungNilaiAkhir` dan `finalisasiNilaiAkhir` diuji manual dengan skenario lengkap (rombel berbeda, tahun ajaran berbeda, periode tutup).
+- [x] **Tes penilaian:** `tests/Feature/AkademikPenilaianTest.php` — 20 tes semua lolos PostgreSQL (`sifa_test`): bobot, metode (rata_berbobot, rata_sumatif, nilai_tertinggi, formula), pembulatan (standar/atas/bawah), skala/KKM, prioritas aturan, finalisasi draft→final, penolakan finalisasi duplikat, koreksi draft, penolakan koreksi final, isolasi cabang, input nilai sebelum/sesudah final, tanpa data.
 
 ### P3.5 Kenaikan, rapor, dan penilaian TK
 - [ ] Migrasikan `perkembangan_siswa`, `keputusan_kenaikan`, `rapor_templat(+bagian)`, `rapor`, `rapor_butir`. Rapor terbit menyimpan snapshot butir dan immutable; koreksi melalui mekanisme yang disepakati.
@@ -268,5 +263,5 @@
 - Filament Resources + Pages (9 file): `JurnalMengajarResource`, `PresensiSiswaResource`, `IzinSiswaResource` (group Akademik, sort 5/6/7) + List/Create/Edit masing-masing
 - Tes: `tests/Feature/AkademikPresensiTest.php` (13 tes, semua lolos PostgreSQL `sifa_test`)
 
-**Berikutnya: P3.4 Perangkat ajar dan penilaian** — migrasi `modul_ajar`, komponen penilaian, nilai siswa, skala, aturan olah, nilai akhir, KKM, remedial, finalisasi. Service hitung/finalisasi massal dan koreksi dengan jejak. Panel komponen, input bulk, nilai akhir, aturan olah.
+**Berikutnya: P3.5 Kenaikan, rapor, dan penilaian TK** — migrasikan `perkembangan_siswa`, `keputusan_kenaikan`, `rapor_templat(+bagian)`, `rapor`, `rapor_butir`; `KenaikanKelasService`; tabel `tk_*` untuk TK.
 
