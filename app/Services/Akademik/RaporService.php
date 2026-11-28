@@ -107,7 +107,7 @@ class RaporService
     private function pilihTemplat(Siswa $siswa, Semester $semester): ?RaporTemplat
     {
         // Templat paling spesifik menang: sekolah > kurikulum > jenjang > default (semua null)
-        return RaporTemplat::query()
+        $templat = RaporTemplat::query()
             ->where('is_aktif', true)
             ->where(function ($q) use ($siswa, $semester) {
                 $q->where('sekolah_id', $siswa->rombel?->sekolah_id)
@@ -122,6 +122,25 @@ class RaporService
             ->orderByDesc('jenjang_id')
             ->orderByDesc('tahun_ajaran_id')
             ->first();
+
+        if (! $templat) {
+            $templat = RaporTemplat::firstOrCreate(
+                ['kode' => 'rapor_tk_default'],
+                [
+                    'sekolah_id' => null,
+                    'jenjang_id' => null,
+                    'kurikulum_id' => null,
+                    'tahun_ajaran_id' => null,
+                    'cabang_id' => null,
+                    'nama' => 'Rapor TK Default',
+                    'jenis_penilaian' => 'deskriptif',
+                    'pengaturan' => [],
+                    'is_aktif' => true,
+                ]
+            );
+        }
+
+        return $templat;
     }
 
     private function pastikanLingkupCabang(Siswa $siswa): void

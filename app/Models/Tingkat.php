@@ -8,6 +8,10 @@ class Tingkat extends BaseModel
 {
     protected $guarded = [];
 
+    protected $attributes = [
+        'urutan' => 0,
+    ];
+
     protected $casts = [
         'is_aktif' => 'boolean',
     ];

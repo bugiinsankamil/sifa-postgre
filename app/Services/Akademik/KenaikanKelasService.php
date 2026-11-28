@@ -116,7 +116,9 @@ class KenaikanKelasService
                     'tahun_ajaran_id' => $tahunAjaranBerikutnya->id,
                 ],
                 [
+                    'sekolah_id' => $rombelTujuan->sekolah_id,
                     'cabang_id' => $rombelTujuan->cabang_id,
+                    'jenis_masuk' => 'naik_jenjang',
                     'tanggal_masuk' => now()->toDateString(),
                     'status' => 'aktif',
                 ]
@@ -134,6 +136,7 @@ class KenaikanKelasService
                     'rombel_id' => $rombelTujuan->id,
                     'cabang_id' => $rombelTujuan->cabang_id,
                     'tahun_ajaran_id' => $tahunAjaranBerikutnya->id,
+                    'tanggal_masuk' => now()->toDateString(),
                     'status' => 'aktif',
                 ]);
             }

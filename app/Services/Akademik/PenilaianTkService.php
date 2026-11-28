@@ -35,7 +35,7 @@ class PenilaianTkService
             $observasi = TkObservasi::create([
                 'siswa_id' => $siswa->id,
                 'cabang_id' => $siswa->cabang_id,
-                'rombel_id' => $siswa->rombelSiswa?->rombel_id ?? null,
+                'rombel_id' => $siswa->rombelSiswaAktif->first()?->rombel_id ?? null,
                 'semester_id' => $semester->id,
                 'tema_id' => $temaId,
                 'aspek_id' => $aspekId,
@@ -174,7 +174,7 @@ class PenilaianTkService
 
     private function cabangIdSiswa(Siswa $siswa): ?int
     {
-        return $siswa->rombelSiswaAktif->first()?->cabang_id;
+        return $siswa->rombelSiswaAktif()->withoutGlobalScopes()->first()?->cabang_id;
     }
 
     private function pastikanLingkupCabangViaAsesmen(TkAsesmenSemester $asesmen): void
