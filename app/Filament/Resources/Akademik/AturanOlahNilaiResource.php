@@ -27,7 +27,7 @@ use Illuminate\Database\Eloquent\Model;
 class AturanOlahNilaiResource extends Resource
 {
     protected static ?string $model = AturanOlahNilai::class;
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-sliders';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-cog';
     protected static string|UnitEnum|null $navigationGroup = 'Akademik';
     protected static ?int $navigationSort = 12;
     protected static ?string $navigationLabel = 'Aturan Olah Nilai';

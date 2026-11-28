@@ -152,12 +152,19 @@
 - [x] **Tes penilaian:** `tests/Feature/AkademikPenilaianTest.php` — 20 tes semua lolos PostgreSQL (`sifa_test`): bobot, metode (rata_berbobot, rata_sumatif, nilai_tertinggi, formula), pembulatan (standar/atas/bawah), skala/KKM, prioritas aturan, finalisasi draft→final, penolakan finalisasi duplikat, koreksi draft, penolakan koreksi final, isolasi cabang, input nilai sebelum/sesudah final, tanpa data.
 
 ### P3.5 Kenaikan, rapor, dan penilaian TK
-- [ ] Migrasikan `perkembangan_siswa`, `keputusan_kenaikan`, `rapor_templat(+bagian)`, `rapor`, `rapor_butir`. Rapor terbit menyimpan snapshot butir dan immutable; koreksi melalui mekanisme yang disepakati.
-- [ ] `KenaikanKelasService`: naik/tinggal/lulus/pindah membentuk `siswa_sekolah` dan `rombel_siswa` atomik/idempoten; dispatch `KenaikanKelasDitetapkan` setelah commit.
-- [ ] Buat `v_linimasa_siswa` setelah Kesiswaan ada.
-- [ ] Migrasikan tabel `tk_*` untuk observasi, ceklis, karya, refleksi, asesmen semester; pilih template paling spesifik.
+
+**Status: Migrasi, model, dan service selesai (belum diuji tes di PostgreSQL).**
+
+- [x] **Migrasi:** `2026_12_03_000000_buat_tabel_kenaikan_rapor_tk.php` — 14 tabel (`perkembangan_siswa`, `keputusan_kenaikan`, `rapor_templat`, `rapor_templat_bagian`, `rapor`, `rapor_butir`, `tk_aspek`, `tk_indikator`, `tk_tema`, `tk_observasi`, `tk_ceklis_capaian`, `tk_hasil_karya`, `tk_asesmen_semester`, `tk_refleksi_orang_tua`) dengan FK eksplisit, `BerLingkupCabang`, unique constraint, check constraint.
+- [x] **Model:** 14 model baru (`PerkembanganSiswa`, `KeputusanKenaikan`, `RaporTemplat`, `RaporTemplatBagian`, `Rapor`, `RaporButir`, `TkAspek`, `TkIndikator`, `TkTema`, `TkObservasi`, `TkCeklisCapaian`, `TkHasilKarya`, `TkAsesmenSemester`, `TkRefleksiOrangTua`) extends `BaseModel`, FK eksplisit, cast decimal/date/array.
+- [x] **Relasi model:** `Siswa` (`rombelSiswa`, `rombelSiswaAktif`, `rombelAktif`); `RombelSiswa` (`siswa`, `rombel`, `sekolah`).
+- [x] **Exception domain:** `KenaikanKelasException`, `RaporException`, `PenilaianTkException` di `app/Exceptions/Akademik/`.
+- [x] **Event:** `KenaikanKelasDitetapkan` (dispatch setelah `DB::afterCommit`).
+- [x] **Service:** `KenaikanKelasService` (`tetapkanKeputusan`, `ubahKeputusan`, `bentukRombelTahunBerikutnya`), `RaporService` (`buatDraft`, `verifikasi`, `terbitkan`), `PenilaianTkService` (`catatObservasi`, `catatCeklisCapaian`, `catatHasilKarya`, `susunAsesmenSemester`, `finalisasiAsesmen`). Semua pakai `DB::transaction`, isolasi cabang via `CabangKonteks`, idempoten.
+- [ ] **Tes:** `tests/Feature/AkademikKenaikanRaporTkTest.php` dibuat (belum dijalankan di PostgreSQL).
+- [ ] **Filament Resource:** belum dibuat.
+- [ ] `v_linimasa_siswa` ditunda setelah Kesiswaan ada.
 - [ ] **Bloker:** contoh rapor TK/SD/SMP dan kurikulum yayasan masih terbuka. Jangan kunci template produksi sebelum diterima.
-- [ ] Tes snapshot, fallback template, koreksi, kenaikan, narasi TK, dan akses.
 
 ---
 
@@ -227,9 +234,11 @@
 
 ## Langkah Berikutnya (aktif)
 
-1. **P3 Akademik Inti - P3.1 Kurikulum dan Struktur:** ✅ Migrasi dan model selesai (migrasi `2026_11_20_080100`, model `BaseModel` sudah diperbaiki, migration korektif `2026_11_24_000000_perbaiki_skema_kurikulum.php`). Service `KurikulumService` dan 6 Filament resource sudah dibuat. ✅ Paket P3.1 Kurikulum tutup lengkap: migrasi naik/turun diuji di PostgreSQL (`sifa_test`), semua 9 tes `AkademikKurikulumTest.php` lolos, dan logic business (penerapan kurikulum per sekolah/tahun/tingkat, penolakan duplikat, validasi jenhang) terverifikasi melalui tes. Panel kurikulum dapat dibuka dan resource aktif.
-2. **P0 — Database development (`sifa_postgre`):** ✅ Semua migrasi sudah di-Ran, termasuk `2026_11_28_080000_buat_tabel_penugasan_mengajar`. Tidak ada Pending migrations.
-3. **✅ P3.2 Penugasan mengajar dan jadwal — SELESAI disiapkan dan divalidasi:**
+1. **P3.5 Kenaikan, rapor, dan penilaian TK:** Migrasi, model, dan service selesai. **Langkah berikutnya:** jalankan tes `AkademikKenaikanRaporTkTest.php` di PostgreSQL (`sifa_test`), perbaiki jika ada galat, lalu buat Filament Resource untuk `KeputusanKenaikan`, `RaporTemplat`, `RaporTemplatBagian`, `Rapor`, `TkAspek`, `TkIndikator`, `TkTema`, `TkObservasi`, `TkCeklisCapaian`, `TkHasilKarya`, `TkAsesmenSemester`, `TkRefleksiOrangTua`.
+2. **P3.1 Kurikulum dan Struktur:** ✅ selesai.
+3. **P3.2 Penugasan mengajar dan jadwal:** ✅ selesai.
+4. **P3.3 Jurnal, presensi, dan izin siswa:** ✅ selesai.
+5. **P3.4 Perangkat ajar dan penilaian:** ✅ selesai.
 
 **File yang dibuat/diubah:**
 - Migrasi: `database/migrations/2026_11_28_080000_buat_tabel_penugasan_mengajar.php` (3 tabel: penugasan_mengajar, jam_pelajaran, jadwal_pelajaran) — **Ran di PostgreSQL**
